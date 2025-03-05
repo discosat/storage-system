@@ -1,16 +1,42 @@
 package main
 
 import (
+	"archive/zip"
+	"context"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
+var minioClient *minio.Client
+
 func main() {
+	ctx := context.Background()
+	minioClient = configueMinIO()
+
+	bucketName := "disco2data"
+	bucketRegion := "eu-north-0"
+
+	err := minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{Region: bucketRegion})
+
+	if err != nil {
+		exists, existsErr := minioClient.BucketExists(ctx, bucketName)
+		if existsErr == nil && exists {
+			log.Printf("We already own %s", bucketName)
+		} else {
+			log.Fatalf("main: %v", err)
+		}
+
+	}
+	log.Printf("Successfulle created %s \n", bucketName)
+
 	router := gin.Default()
 
 	router.GET("/ping", func(c *gin.Context) {
@@ -24,6 +50,25 @@ func main() {
 	router.POST("/batch", uploadBatch)
 
 	router.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+}
+
+func configueMinIO() *minio.Client {
+	endpoint := "app-disco-minio.cloud.sdu.dk"
+	accessKeyID := "NTZmNDI2OTM5OTVmOGQwNjRkMTMxODA3"
+	secretAccessKey := "MmYzOThiZWRmMjgwNWI0NDc2ZTE2ZGJh"
+	useSSL := true
+
+	var err error
+	minioC, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Secure: useSSL,
+	})
+
+	if err != nil {
+		log.Fatalf("configureMinIO: %v", err)
+	}
+
+	return minioC
 }
 
 func uploadFile(c *gin.Context) {
@@ -59,12 +104,36 @@ func uploadFiles(c *gin.Context) {
 
 func uploadBatch(c *gin.Context) {
 
-	file, _ := c.FormFile("batch")
-	log.Println(file.Filename)
-	tmpFile, _ := os.CreateTemp("", "temp.zip")
+	file, _, _ := c.Request.FormFile("batch")
+	//fileName := filepath.Base(header.Filename)
+	//log.Println(fileName)
+	tmpFile, _ := os.CreateTemp("", "temp*.zip")
 	defer os.Remove(tmpFile.Name())
+
+	_, err := io.Copy(tmpFile, file)
+	if err != nil {
+		log.Fatalf("uploadBatch: %v \n", err)
+	}
+	log.Printf("uploadBatch: %+v \n", tmpFile)
+	archive, err := zip.OpenReader(tmpFile.Name())
+	for _, iFile := range archive.File {
+		if iFile.FileInfo().IsDir() {
+			continue
+		}
+		oFile, _ := iFile.Open()
+		log.Printf("uploadBatch: File name: %v", iFile.Name)
+		log.Printf("uploadBatch: filePath.base: %v", filepath.Base(iFile.Name))
+		status, errr := minioClient.PutObject(context.Background(), "disco2data", filepath.Base(iFile.Name), oFile, iFile.FileInfo().Size(), minio.PutObjectOptions{})
+		//status, err := minioClient.FPutObject(context.Background(), "disco2data", filepath.Base(iFile.Name), iFile.Name, minio.PutObjectOptions{ContentType: "image/png"})
+		if errr != nil {
+			log.Printf("uploadBatch: Cannot upload thie file %v, error is %v", filepath.Base(iFile.Name), err)
+			break
+		}
+		log.Println(status.Key)
+
+	}
 	//_, err := io.Copy(tmpFile, file)
-	open, _ := file.Open()
+	//open, _ := file.Open()
 	//io.Reader(open)
-	
+
 }
