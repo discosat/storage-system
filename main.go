@@ -15,25 +15,26 @@ import (
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
-var minioClient *minio.Client
+var oClient OClient
 
 func main() {
 	ctx := context.Background()
-	minioClient = configueMinIO()
+	oClient = OClient{
+		s3c: configueMinIO(),
+	}
 
 	bucketName := "disco2data"
 	bucketRegion := "eu-north-0"
 
-	err := minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{Region: bucketRegion})
+	err := oClient.s3c.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{Region: bucketRegion})
 
 	if err != nil {
-		exists, existsErr := minioClient.BucketExists(ctx, bucketName)
+		exists, existsErr := oClient.s3c.BucketExists(ctx, bucketName)
 		if existsErr == nil && exists {
 			log.Printf("We already own %s", bucketName)
 		} else {
 			log.Fatalf("main: %v", err)
 		}
-
 	}
 	log.Printf("Successfulle created %s \n", bucketName)
 
@@ -54,8 +55,8 @@ func main() {
 
 func configueMinIO() *minio.Client {
 	endpoint := "app-disco-minio.cloud.sdu.dk"
-	accessKeyID := "NTZmNDI2OTM5OTVmOGQwNjRkMTMxODA3"
-	secretAccessKey := "MmYzOThiZWRmMjgwNWI0NDc2ZTE2ZGJh"
+	accessKeyID := ""
+	secretAccessKey := ""
 	useSSL := true
 
 	var err error
@@ -123,8 +124,10 @@ func uploadBatch(c *gin.Context) {
 		oFile, _ := iFile.Open()
 		log.Printf("uploadBatch: File name: %v", iFile.Name)
 		log.Printf("uploadBatch: filePath.base: %v", filepath.Base(iFile.Name))
-		status, errr := minioClient.PutObject(context.Background(), "disco2data", filepath.Base(iFile.Name), oFile, iFile.FileInfo().Size(), minio.PutObjectOptions{})
-		//status, err := minioClient.FPutObject(context.Background(), "disco2data", filepath.Base(iFile.Name), iFile.Name, minio.PutObjectOptions{ContentType: "image/png"})
+		//status, errr := saveItem(oClient.s3c, iFile, oFile)
+		status, errr := oClient.saveItem(oClient.s3c, iFile, oFile)
+		//status, errr := oClient.s3c.PutObject(context.Background(), "disco2data", filepath.Base(iFile.Name), oFile, iFile.FileInfo().Size(), minio.PutObjectOptions{})
+		//status, err := oClient.s3c.FPutObject(context.Background(), "disco2data", filepath.Base(iFile.Name), iFile.Name, minio.PutObjectOptions{ContentType: "image/png"})
 		if errr != nil {
 			log.Printf("uploadBatch: Cannot upload thie file %v, error is %v", filepath.Base(iFile.Name), err)
 			break
