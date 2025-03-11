@@ -1,4 +1,4 @@
-package main
+package dam
 
 import (
 	"github.com/gin-gonic/gin"
@@ -18,7 +18,7 @@ type ImageReq struct {
 	Date      string `form:"date" binding:"omitempty"`
 }
 
-func main() {
+func Start() {
 	g := gin.Default()
 
 	g.GET("/search-images", func(context *gin.Context) {
