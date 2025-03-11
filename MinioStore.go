@@ -22,10 +22,11 @@ func (s MinioStore) SaveBatch(zipArchive *zip.ReadCloser) (string, error) {
 			continue
 		}
 		oFile, _ := iFile.Open()
-		log.Printf("uploadBatch: File name: %v", iFile.Name)
-		status, err := s.minioClient.PutObject(context.Background(), bucketName, filepath.Base(iFile.Name), oFile, iFile.FileInfo().Size(), minio.PutObjectOptions{})
+		log.Printf("SaveBatch: File name: %v", filepath.Clean(iFile.Name))
+
+		status, err := s.minioClient.PutObject(context.Background(), bucketName, filepath.Clean(iFile.Name), oFile, iFile.FileInfo().Size(), minio.PutObjectOptions{})
 		if err != nil {
-			log.Printf("uploadBatch: Cannot upload thie file %v, error is %v", filepath.Base(iFile.Name), err)
+			log.Printf("SaveBatch: Cannot upload thie file %v, error is %v", filepath.Base(iFile.Name), err)
 			break
 		}
 		log.Println(status.Key)
