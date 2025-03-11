@@ -31,6 +31,7 @@ func main() {
 
 func uploadBatch(c *gin.Context) {
 
+	bucketName := c.Request.FormValue("bucketName")
 	file, _, _ := c.Request.FormFile("batch")
 
 	tmpFile, _ := os.CreateTemp("", "temp*.zip")
@@ -40,10 +41,12 @@ func uploadBatch(c *gin.Context) {
 	if err != nil {
 		log.Fatalf("uploadBatch: %v \n", err)
 	}
-	log.Printf("uploadBatch: %+v \n", tmpFile)
 
 	archive, err := zip.OpenReader(tmpFile.Name())
-	success, err := ObjectStore.ds.SaveBatch(archive)
+	success, err := ObjectStore.ds.SaveBatch(archive, bucketName)
+	if err != nil {
+		log.Fatal(err)
+	}
 	log.Println(success)
 
 }

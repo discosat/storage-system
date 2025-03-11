@@ -5,8 +5,7 @@ import (
 )
 
 type IDataStore interface {
-	SaveBatch(zipArchive *zip.ReadCloser) (string, error)
-	//CreateDirectory(directoryName string) (string, error)
+	SaveBatch(zipArchive *zip.ReadCloser, bucketName string) (string, error)
 }
 
 type SimpleStore struct {

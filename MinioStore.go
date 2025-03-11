@@ -3,20 +3,32 @@ package main
 import (
 	"archive/zip"
 	"context"
+	"fmt"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"log"
+	"os"
 	"path/filepath"
+
+	"github.com/joho/godotenv"
 )
 
-const bucketName = "disco2data"
 const bucketRegion = "eu-north-0"
 
 type MinioStore struct {
 	minioClient *minio.Client
 }
 
-func (s MinioStore) SaveBatch(zipArchive *zip.ReadCloser) (string, error) {
+func (s MinioStore) SaveBatch(zipArchive *zip.ReadCloser, bucketName string) (string, error) {
+	exists, err := s.minioClient.BucketExists(context.Background(), bucketName)
+	if err != nil {
+		return "", fmt.Errorf("SaveBatch: Unknown error ocurred %v", err)
+	}
+
+	if !exists {
+		return "", fmt.Errorf("SaveBatch: No bucket with name '%v' exists. Specify an already existing bucket", bucketName)
+	}
+
 	for _, iFile := range zipArchive.File {
 		if iFile.FileInfo().IsDir() {
 			continue
@@ -36,9 +48,14 @@ func (s MinioStore) SaveBatch(zipArchive *zip.ReadCloser) (string, error) {
 }
 
 func newMinioStore() MinioStore {
-	endpoint := "app-disco-minio.cloud.sdu.dk"
-	accessKeyID := ""
-	secretAccessKey := ""
+	er := godotenv.Load()
+	if er != nil {
+		log.Fatalf("newMinioStore: Cant find env - %v", er)
+	}
+	//log.Println(os.Getenv("MINIO_ENDPONIT"))
+	endpoint := os.Getenv("MINIO_ENDPOINT")
+	accessKeyID := os.Getenv("MINO_ACCESS_KEY_ID")
+	secretAccessKey := os.Getenv("MINIO_SECRET_ACCESS_KEY")
 	useSSL := true
 
 	var err error
