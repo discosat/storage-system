@@ -1,4 +1,4 @@
-module DataIngestionModule
+module github.com/discosat/storage-system
 
 go 1.24
 

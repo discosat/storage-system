@@ -1,4 +1,4 @@
-package main
+package dim
 
 import (
 	"archive/zip"
@@ -12,7 +12,7 @@ import (
 
 var ObjectStore SimpleStore
 
-func main() {
+func Start() {
 	ObjectStore = NewSimpleStore(newMinioStore())
 	router := gin.Default()
 
@@ -24,12 +24,12 @@ func main() {
 
 	router.POST("/file", uploadFile)
 	router.POST("/files", uploadFiles)
-	router.POST("/batch", uploadBatch)
+	router.POST("/batch", UploadBatch)
 
 	router.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
 
-func uploadBatch(c *gin.Context) {
+func UploadBatch(c *gin.Context) {
 
 	bucketName := c.Request.FormValue("bucketName")
 	file, _, _ := c.Request.FormFile("batch")
@@ -39,7 +39,7 @@ func uploadBatch(c *gin.Context) {
 
 	_, err := io.Copy(tmpFile, file)
 	if err != nil {
-		log.Fatalf("uploadBatch: %v \n", err)
+		log.Fatalf("UploadBatch: %v \n", err)
 	}
 
 	archive, err := zip.OpenReader(tmpFile.Name())
