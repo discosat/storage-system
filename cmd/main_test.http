@@ -1,0 +1,1 @@
+GET localhost:8081/search-images?cam_type=infrared&img_id=12ak34
