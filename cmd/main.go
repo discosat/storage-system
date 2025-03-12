@@ -12,5 +12,7 @@ func main() {
 	go dam.Start()
 	go dim.Start()
 
+	log.Println("DIM-DAM up and running")
+
 	select {}
 }
