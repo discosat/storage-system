@@ -2,10 +2,12 @@ package dim
 
 import (
 	"archive/zip"
+	"io"
 )
 
 type IDataStore interface {
-	SaveBatch(zipArchive *zip.ReadCloser, bucketName string) (string, error)
+	SaveFile(fileInfo *zip.File, openFile io.ReadCloser, bucketName string) (string, error)
+	BucketExists(bucketName string) (bool, error)
 }
 
 type SimpleStore struct {

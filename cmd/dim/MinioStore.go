@@ -4,55 +4,48 @@ import (
 	"archive/zip"
 	"context"
 	"fmt"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/joho/godotenv"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
-
-const bucketRegion = "eu-north-0"
 
 type MinioStore struct {
 	minioClient *minio.Client
 }
 
-func (s MinioStore) SaveBatch(zipArchive *zip.ReadCloser, bucketName string) (string, error) {
-	exists, err := s.minioClient.BucketExists(context.Background(), bucketName)
+func (m MinioStore) SaveFile(fileInfo *zip.File, openFile io.ReadCloser, bucketName string) (string, error) {
+	status, err := m.minioClient.PutObject(context.Background(), bucketName, filepath.Clean(fileInfo.Name), openFile, fileInfo.FileInfo().Size(), minio.PutObjectOptions{})
 	if err != nil {
-		return "", fmt.Errorf("SaveBatch: Unknown error ocurred %v", err)
+		return "", fmt.Errorf("error in upload to minio: %v", err)
+	}
+	err = openFile.Close()
+	if err != nil {
+		return "", fmt.Errorf("error in closing file: %v", err)
 	}
 
-	if !exists {
-		return "", fmt.Errorf("SaveBatch: No bucket with name '%v' exists. Specify an already existing bucket", bucketName)
-	}
-
-	for _, iFile := range zipArchive.File {
-		if iFile.FileInfo().IsDir() {
-			continue
-		}
-		oFile, _ := iFile.Open()
-		log.Printf("SaveBatch: File name: %v", filepath.Clean(iFile.Name))
-
-		status, err := s.minioClient.PutObject(context.Background(), bucketName, filepath.Clean(iFile.Name), oFile, iFile.FileInfo().Size(), minio.PutObjectOptions{})
-		if err != nil {
-			log.Printf("SaveBatch: Cannot upload thie file %v, error is %v", filepath.Base(iFile.Name), err)
-			break
-		}
-		log.Println(status.Key)
-
-	}
+	//m.minioClient.PresignedPutObject()
+	log.Println(status.Key)
 	return "success", nil
 }
 
-func newMinioStore() MinioStore {
+func (m MinioStore) BucketExists(bucketName string) (bool, error) {
+	exists, err := m.minioClient.BucketExists(context.Background(), bucketName)
+	if err != nil {
+		return false, fmt.Errorf("unknown error ocurred %v", err)
+	}
+	return exists, nil
+}
+
+func NewMinioStore() MinioStore {
 	er := godotenv.Load("cmd/dim/.env")
 	if er != nil {
-		log.Fatalf("newMinioStore: Cant find env - %v", er)
+		log.Fatalf("NewMinioStore: Cant find env - %v", er)
 	}
-	//log.Println(os.Getenv("MINIO_ENDPONIT"))
 	endpoint := os.Getenv("MINIO_ENDPOINT")
 	accessKeyID := os.Getenv("MINO_ACCESS_KEY_ID")
 	secretAccessKey := os.Getenv("MINIO_SECRET_ACCESS_KEY")
@@ -65,7 +58,7 @@ func newMinioStore() MinioStore {
 	})
 
 	if err != nil {
-		log.Fatalf("newMinioStore: %v", err)
+		log.Fatalf("NewMinioStore: %v", err)
 	}
 
 	return MinioStore{minioClient: minioC}
