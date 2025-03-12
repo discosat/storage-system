@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"reflect"
 	"time"
 )
 
@@ -31,16 +32,42 @@ func Start() {
 	}
 }
 
+func filterEmptyFields(req ImageReq) map[string]interface{} {
+	filteredResult := make(map[string]interface{})
+	val := reflect.ValueOf(req)
+	typ := reflect.TypeOf(req)
+
+	for i := 0; i < val.NumField(); i++ {
+		formVal := val.Field(i)
+		formType := typ.Field(i).Tag.Get("form")
+
+		if formType == "" {
+			formType = typ.Field(i).Name
+		}
+
+		if formVal.Kind() == reflect.Ptr && !formVal.IsNil() {
+			filteredResult[formType] = formVal.Elem().Interface()
+		} else if formVal.Kind() != reflect.Ptr && !formVal.IsZero() {
+			filteredResult[formType] = formVal.Interface()
+		}
+	}
+	return filteredResult
+}
+
 func ReqReturn(c *gin.Context) {
 	var req ImageReq
+
+	log.Println("Logging req in ReqReturn: ", req)
 
 	if err := c.ShouldBindQuery(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
 		return
 	}
 
+	filteredReq := filterEmptyFields(req)
+
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "Success",
-		"recieved": req,
+		"recieved": filteredReq,
 	})
 }
