@@ -48,7 +48,7 @@ func (s MinioStore) SaveBatch(zipArchive *zip.ReadCloser, bucketName string) (st
 }
 
 func newMinioStore() MinioStore {
-	er := godotenv.Load()
+	er := godotenv.Load("cmd/dim/.env")
 	if er != nil {
 		log.Fatalf("newMinioStore: Cant find env - %v", er)
 	}
