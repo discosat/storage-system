@@ -2,6 +2,7 @@ package dim
 
 import (
 	"archive/zip"
+	"database/sql"
 	"fmt"
 	"io"
 	"log"
@@ -10,13 +11,24 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 var ObjectStore SimpleStore
+var db *sql.DB
 
 func Start() {
 	ObjectStore = NewSimpleStore(NewMinioStore())
+	db = configDatabase()
+	defer db.Close()
+
+	//var result string
+	////err := db.QueryRow("SELECT 1").Scan(&result)
+	////if err != nil {
+	////	log.Fatalf("Error in db: %v", err)
+	////}
+	////log.Printf("Success: %v", result)
+
 	router := gin.Default()
 	//router.Use(ErrorHandler)
 
@@ -31,6 +43,14 @@ func Start() {
 	router.POST("/batch", UploadBatch)
 
 	router.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+}
+
+func configDatabase() *sql.DB {
+	db, err := sql.Open("pgx", fmt.Sprint("postgres://", os.Getenv("PGUSER"), ":", os.Getenv("PGPASSWORD"), "@", os.Getenv("PGHOST"), "/", os.Getenv("PGDATABASE")))
+	if err != nil {
+		log.Fatalf("Unable to connect to database: %v", err)
+	}
+	return db
 }
 
 func UploadBatch(c *gin.Context) {
