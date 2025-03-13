@@ -19,7 +19,7 @@ type MinioStore struct {
 }
 
 func (m MinioStore) SaveFile(fileInfo *zip.File, openFile io.ReadCloser, bucketName string) (string, error) {
-	status, err := m.minioClient.PutObject(context.Background(), bucketName, filepath.Clean(fileInfo.Name), openFile, fileInfo.FileInfo().Size(), minio.PutObjectOptions{})
+	status, err := m.minioClient.PutObject(context.Background(), bucketName, filepath.ToSlash(fileInfo.Name), openFile, fileInfo.FileInfo().Size(), minio.PutObjectOptions{})
 	if err != nil {
 		return "", fmt.Errorf("error in upload to minio: %v", err)
 	}
@@ -27,10 +27,7 @@ func (m MinioStore) SaveFile(fileInfo *zip.File, openFile io.ReadCloser, bucketN
 	if err != nil {
 		return "", fmt.Errorf("error in closing file: %v", err)
 	}
-
-	//m.minioClient.PresignedPutObject()
-	log.Println(status.Key)
-	return "success", nil
+	return status.Key, nil
 }
 
 func (m MinioStore) BucketExists(bucketName string) (bool, error) {

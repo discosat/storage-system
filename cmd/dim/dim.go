@@ -96,12 +96,14 @@ func UploadBatch(c *gin.Context) {
 			continue
 		}
 		oFile, _ := iFile.Open()
-		_, err = ObjectStore.ds.SaveFile(iFile, oFile, bucketName)
-
+		ref, err := ObjectStore.ds.SaveFile(iFile, oFile, bucketName)
 		if err != nil {
 			log.Printf("UploadBatch: Cannot upload thie file %v, error is %v", filepath.Base(iFile.Name), err)
 			break
 		}
+		var measurementId string
+		err = db.QueryRow("INSERT INTO measurements (ref) VALUES ($1) RETURNING id", ref).Scan(&measurementId)
+		log.Printf("MEASUREMENT ID: %v", measurementId)
 	}
 
 	log.Println("done")
