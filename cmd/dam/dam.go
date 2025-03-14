@@ -11,8 +11,8 @@ import (
 type ImageReq struct {
 	ImgID     *string    `form:"img_id" binding:"omitempty"`
 	ObsID     *string    `form:"obs_id" binding:"omitempty"`
-	StartTime *time.Time `form:"start_time" binding:"omitempty"`
-	EndTime   *time.Time `form:"end_time" binding:"omitempty"`
+	StartTime *time.Time `form:"start_time" format:"UnixDate" binding:"omitempty"`
+	EndTime   *time.Time `form:"end_time" format:"UnixDate" binding:"omitempty"`
 	LatFrom   *float64   `form:"lat_from" binding:"omitempty"`
 	LatTo     *float64   `form:"lat_to" binding:"omitempty"`
 	LonFrom   *float64   `form:"lon_from" binding:"omitempty"`
@@ -32,7 +32,7 @@ func Start() {
 	}
 }
 
-func filterEmptyFields(req ImageReq) map[string]interface{} {
+func FilterEmptyFields(req ImageReq) map[string]interface{} {
 	filteredResult := make(map[string]interface{})
 	val := reflect.ValueOf(req)
 	typ := reflect.TypeOf(req)
@@ -57,17 +57,19 @@ func filterEmptyFields(req ImageReq) map[string]interface{} {
 func ReqReturn(c *gin.Context) {
 	var req ImageReq
 
-	log.Println("Logging req in ReqReturn: ", req)
-
 	if err := c.ShouldBindQuery(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
 		return
 	}
 
-	filteredReq := filterEmptyFields(req)
+	auth := AuthService()
+	log.Println(auth)
+
+	filteredReq := FilterEmptyFields(req)
+	log.Println(filteredReq)
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":  "Success",
-		"recieved": filteredReq,
+		"message":          "Success",
+		"recieved-request": filteredReq,
 	})
 }
