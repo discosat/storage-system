@@ -24,7 +24,7 @@ type ImageReq struct {
 func Start() {
 	g := gin.Default()
 
-	g.GET("/search-images", ReqReturn)
+	g.GET("/search-images", ReqHandler)
 
 	err := g.Run(":8081")
 	if err != nil {
@@ -54,7 +54,7 @@ func FilterEmptyFields(req ImageReq) map[string]interface{} {
 	return filteredResult
 }
 
-func ReqReturn(c *gin.Context) {
+func ReqHandler(c *gin.Context) {
 	var req ImageReq
 
 	if err := c.ShouldBindQuery(&req); err != nil {
