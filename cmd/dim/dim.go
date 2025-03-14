@@ -17,35 +17,29 @@ import (
 var ObjectStore SimpleStore
 var db *sql.DB
 
+type Mission struct {
+	name       string
+	bucketName string
+}
+
 func Start() {
 	ObjectStore = NewSimpleStore(NewMinioStore())
-	db = configDatabase()
+	db = ConfigDatabase()
 	defer db.Close()
 
-	//var result string
-	////err := db.QueryRow("SELECT 1").Scan(&result)
-	////if err != nil {
-	////	log.Fatalf("Error in db: %v", err)
-	////}
-	////log.Printf("Success: %v", result)
-
 	router := gin.Default()
-	//router.Use(ErrorHandler)
-
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "pong",
 		})
 	})
 
-	router.POST("/file", uploadFile)
-	router.POST("/files", uploadFiles)
 	router.POST("/batch", UploadBatch)
 
 	router.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
 
-func configDatabase() *sql.DB {
+func ConfigDatabase() *sql.DB {
 	db, err := sql.Open("pgx", fmt.Sprint("postgres://", os.Getenv("PGUSER"), ":", os.Getenv("PGPASSWORD"), "@", os.Getenv("PGHOST"), "/", os.Getenv("PGDATABASE")))
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
@@ -114,15 +108,3 @@ func ErrortAbortMessage(c *gin.Context, statusCode int, err error) {
 	log.Println(err)
 	c.JSON(statusCode, gin.H{"error": fmt.Sprint(err)})
 }
-
-//func ErrorHandler(c *gin.Context) {
-//	c.Next()
-//
-//	for _, err := range c.Errors {
-//		log.Println(err)
-//		c.JSON(400, err)
-//
-//	}
-//
-//	//c.JSON(400, "dø lige")
-//}
