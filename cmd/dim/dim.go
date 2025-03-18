@@ -3,6 +3,7 @@ package dim
 import (
 	"archive/zip"
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -17,10 +18,10 @@ import (
 var ObjectStore SimpleStore
 var db *sql.DB
 
-type Mission struct {
-	name       string
-	bucketName string
-}
+//type Mission struct {
+//	name       string
+//	bucketName string
+//}
 
 func Start() {
 	ObjectStore = NewSimpleStore(NewMinioStore())
@@ -35,6 +36,7 @@ func Start() {
 	})
 
 	router.POST("/batch", UploadBatch)
+	router.POST("/file", UploadImage)
 
 	router.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
@@ -90,17 +92,62 @@ func UploadBatch(c *gin.Context) {
 			continue
 		}
 		oFile, _ := iFile.Open()
-		ref, err := ObjectStore.ds.SaveFile(iFile, oFile, bucketName)
+		_, err := ObjectStore.ds.SaveFile(iFile, oFile, bucketName)
 		if err != nil {
 			log.Printf("UploadBatch: Cannot upload thie file %v, error is %v", filepath.Base(iFile.Name), err)
 			break
 		}
-		var measurementId string
-		err = db.QueryRow("INSERT INTO measurements (ref) VALUES ($1) RETURNING id", ref).Scan(&measurementId)
-		log.Printf("MEASUREMENT ID: %v", measurementId)
+		//var measurementId string
+		//err = db.QueryRow("INSERT INTO measurements (ref) VALUES ($1) RETURNING id", ref).Scan(&measurementId)
+		//log.Printf("MEASUREMENT ID: %v", measurementId)
 	}
 
 	log.Println("done")
+
+}
+
+type Mission struct {
+	id     int
+	name   string
+	bucket string
+}
+
+type Request struct {
+	id   int
+	name string
+	mId  int
+	uId  int
+}
+
+type MeasurementRequest struct {
+	id    int
+	mType string
+	rId   int
+}
+
+func UploadImage(c *gin.Context) {
+
+	//file, err := c.FormFile("file")
+	//if err != nil {
+	//	ErrortAbortMessage(c, http.StatusBadRequest, err)
+	//	return
+	//}
+	//log.Println(file.Filename)
+
+	var mission Mission
+	var request Request
+	//var measurementRequests []MeasurementRequest
+
+	row := db.QueryRow("SELECT * FROM request r INNER JOIN mission m on m.id = r.mission_id WHERE r.id = ?", 1)
+	if err := row.Scan(&request.id, &request.name, &request.uId, &request.mId, &mission.id, &mission.name, &mission.bucket); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Fatalf("dø: %v", err)
+		}
+		log.Fatalf("øøøøh: %v", err)
+	}
+
+	log.Println(mission)
+	log.Println(request)
 
 }
 
