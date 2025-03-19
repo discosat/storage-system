@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"path/filepath"
 )
 
 func Start() {
@@ -31,11 +32,19 @@ func RequestHandler(c *gin.Context) {
 	filteredReq := FilterEmptyFields(req)
 	log.Println(filteredReq)
 
-	ReturnHandler(c)
+	shouldReturnImage := QueryParser(filteredReq)
+
+	ResponseHandler(c, shouldReturnImage)
 }
 
-func ReturnHandler(c *gin.Context) {
+func ResponseHandler(c *gin.Context, shouldReturnImage bool) {
+	if shouldReturnImage {
+		imagePath := filepath.Join("cmd", "mock_images", "Greenland_Glacier_Mock.jpg")
+		c.File(imagePath)
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Success",
+		"message": "No images matched the query",
 	})
 }
