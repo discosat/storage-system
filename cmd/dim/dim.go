@@ -55,19 +55,19 @@ func UploadBatch(c *gin.Context) {
 
 	exists, err := ObjectStore.ds.BucketExists(bucketName)
 	if err != nil {
-		ErrortAbortMessage(c, http.StatusInternalServerError, err)
+		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	if !exists {
 		e := fmt.Errorf("no bucket with name '%v' exists. Specify an already existing bucket", bucketName)
-		ErrortAbortMessage(c, http.StatusBadRequest, e)
+		ErrorAbortMessage(c, http.StatusBadRequest, e)
 		return
 	}
 
 	file, _, err := c.Request.FormFile("batch")
 	if err != nil {
-		ErrortAbortMessage(c, http.StatusInternalServerError, err)
+		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -76,13 +76,13 @@ func UploadBatch(c *gin.Context) {
 
 	_, err = io.Copy(tmpFile, file)
 	if err != nil {
-		ErrortAbortMessage(c, http.StatusInternalServerError, err)
+		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	archive, err := zip.OpenReader(tmpFile.Name())
 	if err != nil {
-		ErrortAbortMessage(c, http.StatusInternalServerError, err)
+		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -131,7 +131,7 @@ func UploadImage(c *gin.Context) {
 	log.Printf("Querying for request with id %v", id)
 	//file, err := c.FormFile("file")
 	//if err != nil {
-	//	ErrortAbortMessage(c, http.StatusBadRequest, err)
+	//	ErrorAbortMessage(c, http.StatusBadRequest, err)
 	//	return
 	//}
 	//log.Println(file.Filename)
@@ -142,44 +142,65 @@ func UploadImage(c *gin.Context) {
 	row := db.QueryRow("SELECT * FROM request r INNER JOIN mission m on m.id = r.mission_id where r.id = $1", id)
 	if err := row.Scan(&request.id, &request.name, &request.uId, &request.mId, &mission.id, &mission.name, &mission.bucket); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			ErrortAbortMessage(c, http.StatusNotFound, err)
+			ErrorAbortMessage(c, http.StatusNotFound, err)
 			return
 		}
 		//log.Fatalf("Unknown SQL error: %v", err)
-		ErrortAbortMessage(c, http.StatusInternalServerError, err)
+		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	var measurementRequests []MeasurementRequest
-	rows, err := db.Query("SELECT * FROM measurement_request WHERE request_id = $1", request.id)
-	if err != nil {
-		ErrortAbortMessage(c, http.StatusNotFound, err)
-		return
-	}
-	defer rows.Close()
+	//var measurementRequests []MeasurementRequest
+	//rows, err := db.Query("SELECT * FROM measurement_request WHERE request_id = $1", request.id)
+	//if err != nil {
+	//	ErrorAbortMessage(c, http.StatusNotFound, err)
+	//	return
+	//}
+	//defer rows.Close()
+	//
+	//for rows.Next() {
+	//	var mr MeasurementRequest
+	//	if err := rows.Scan(&mr.Id, &mr.RId, &mr.MType); err != nil {
+	//		ErrorAbortMessage(c, http.StatusInternalServerError, err)
+	//		return
+	//	}
+	//	measurementRequests = append(measurementRequests, mr)
+	//}
+	//if err = rows.Err(); err != nil {
+	//	ErrorAbortMessage(c, http.StatusInternalServerError, err)
+	//}
 
-	for rows.Next() {
-		var mr MeasurementRequest
-		if err := rows.Scan(&mr.Id, &mr.RId, &mr.MType); err != nil {
-			ErrortAbortMessage(c, http.StatusInternalServerError, err)
+	var measurementRequest MeasurementRequest
+	row = db.QueryRow("SELECT * FROM measurement_request WHERE request_id = $1 AND type = $2", id, "Wide-Image")
+	if err := row.Scan(&measurementRequest.Id, &measurementRequest.RId, &measurementRequest.MType); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ErrorAbortMessage(c, http.StatusNotFound, err)
 			return
 		}
-		log.Println(mr)
-		measurementRequests = append(measurementRequests, mr)
-	}
-	if err = rows.Err(); err != nil {
-		ErrortAbortMessage(c, http.StatusInternalServerError, err)
+		//log.Fatalf("Unknown SQL error: %v", err)
+		ErrorAbortMessage(c, http.StatusInternalServerError, err)
+		return
 	}
 
-	log.Println(measurementRequests)
-	c.JSON(http.StatusOK, gin.H{"mrs": measurementRequests})
+	var observationId int
+	err := db.QueryRow("INSERT INTO observation(request_id, user_id) VALUES ($1, $2) RETURNING id", request.id, request.uId).Scan(&observationId)
+	if err != nil {
+		ErrorAbortMessage(c, http.StatusInternalServerError, err)
+		return
+	}
 
-	log.Println(mission)
-	log.Println(request)
+	var measurementId int
+	err = db.QueryRow("INSERT INTO measurement(object_reference, observation_id, measurement_request_id) VALUES ($1, $2, $3) RETURNING id", "Bæbs", observationId, measurementRequest.Id).Scan(&measurementId)
+
+	log.Printf("id: %v", measurementId)
+
+	c.JSON(http.StatusOK, gin.H{"measurement": measurementId})
+
+	return
 
 }
 
-func ErrortAbortMessage(c *gin.Context, statusCode int, err error) {
+func ErrorAbortMessage(c *gin.Context, statusCode int, err error) {
 	log.Println(err)
 	c.JSON(statusCode, gin.H{"error": fmt.Sprint(err)})
 }

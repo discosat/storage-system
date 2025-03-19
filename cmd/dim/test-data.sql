@@ -11,7 +11,16 @@ INSERT INTO measurement_request(request_id, type) VALUES (1, 'Thermal-Image');
 INSERT INTO measurement_request(request_id, type) VALUES (1, 'Other');
 -- Expand list when needed
 
-SELECT * FROM request r
-    INNER JOIN public.measurement_request mr on r.id = mr.request_id WHERE r.id = 1;
+-- SELECT * FROM request r
+--     INNER JOIN public.measurement_request mr on r.id = mr.request_id WHERE r.id = 1;
+--
+-- SELECT * FROM measurement_request where request_id = 1 AND type = 'Wide-Image';
 
-SELECT * FROM measurement_request where request_id = 1;
+-- SELECT * FROM request r
+--     INNER JOIN public.measurement_request mr on r.id = mr.request_id WHERE r.id = 1;
+--
+-- SELECT * FROM measurement_request where request_id = 1 AND type = 'Wide-Image';
+-- SELECT * FROM request r
+--     INNER JOIN public.measurement_request mr on r.id = mr.request_id WHERE r.id = 1;
+--
+-- SELECT * FROM measurement_request where request_id = 1 AND type = 'Wide-Image';
