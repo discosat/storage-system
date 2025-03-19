@@ -18,11 +18,6 @@ import (
 var ObjectStore SimpleStore
 var db *sql.DB
 
-//type Mission struct {
-//	name       string
-//	bucketName string
-//}
-
 func Start() {
 	ObjectStore = NewSimpleStore(NewMinioStore())
 	db = ConfigDatabase()
@@ -125,27 +120,54 @@ type MeasurementRequest struct {
 	RId   int    `json:"r_id"`
 }
 
+type Observation struct {
+	Id        int
+	RequestId int
+	UserId    int
+}
+
 func UploadImage(c *gin.Context) {
 
-	id := c.Request.FormValue("requestId")
-	log.Printf("Querying for request with id %v", id)
-	//file, err := c.FormFile("file")
-	//if err != nil {
-	//	ErrorAbortMessage(c, http.StatusBadRequest, err)
-	//	return
-	//}
-	//log.Println(file.Filename)
+	//Binding POST data
+	requestId := c.Request.FormValue("requestId")
+	log.Printf("Querying for request with id %v", requestId)
+	file, err := c.FormFile("file")
+	if err != nil {
+		ErrorAbortMessage(c, http.StatusBadRequest, err)
+		return
+	}
+	log.Println(file.Filename)
 
+	// Getting request and mission data
 	var mission Mission
 	var request Request
-
-	row := db.QueryRow("SELECT * FROM request r INNER JOIN mission m on m.id = r.mission_id where r.id = $1", id)
+	row := db.QueryRow("SELECT * FROM request r INNER JOIN mission m on m.id = r.mission_id where r.id = $1", requestId)
 	if err := row.Scan(&request.id, &request.name, &request.uId, &request.mId, &mission.id, &mission.name, &mission.bucket); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			ErrorAbortMessage(c, http.StatusNotFound, err)
 			return
 		}
-		//log.Fatalf("Unknown SQL error: %v", err)
+		ErrorAbortMessage(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Checking if the observation that relates to the request has already been saved, or creates one if not
+	var observation Observation
+	row = db.QueryRow("SELECT * FROM observation WHERE request_id = $1", request.id)
+	err = row.Scan(&observation.Id, &observation.RequestId, &observation.UserId)
+
+	var qErr error
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			qErr = db.QueryRow("INSERT INTO observation(request_id, user_id) VALUES ($1, $2) RETURNING id, request_id, user_id", request.id, request.uId).
+				Scan(&observation.Id, &observation.RequestId, &observation.UserId)
+		} else {
+			ErrorAbortMessage(c, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	if qErr != nil {
 		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -170,29 +192,34 @@ func UploadImage(c *gin.Context) {
 	//	ErrorAbortMessage(c, http.StatusInternalServerError, err)
 	//}
 
+	// Gets the measurement request to relate the measurement to
 	var measurementRequest MeasurementRequest
-	row = db.QueryRow("SELECT * FROM measurement_request WHERE request_id = $1 AND type = $2", id, "Wide-Image")
+	row = db.QueryRow("SELECT * FROM measurement_request WHERE request_id = $1 AND type = $2", requestId, "Narrow-Image")
 	if err := row.Scan(&measurementRequest.Id, &measurementRequest.RId, &measurementRequest.MType); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			ErrorAbortMessage(c, http.StatusNotFound, err)
 			return
 		}
-		//log.Fatalf("Unknown SQL error: %v", err)
 		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	var observationId int
-	err := db.QueryRow("INSERT INTO observation(request_id, user_id) VALUES ($1, $2) RETURNING id", request.id, request.uId).Scan(&observationId)
+	// Inserts measurement into db/object store
+	var measurementId int
+
+	oFile, err := file.Open()
+	if err != nil {
+		ErrorAbortMessage(c, http.StatusBadRequest, err)
+		return
+	}
+	key, err := ObjectStore.ds.SaveImage(file, oFile, mission.bucket, request.name)
 	if err != nil {
 		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
+	err = db.QueryRow("INSERT INTO measurement(object_reference, observation_id, measurement_request_id) VALUES ($1, $2, $3) RETURNING id", key, observation.Id, measurementRequest.Id).Scan(&measurementId)
 
-	var measurementId int
-	err = db.QueryRow("INSERT INTO measurement(object_reference, observation_id, measurement_request_id) VALUES ($1, $2, $3) RETURNING id", "Bæbs", observationId, measurementRequest.Id).Scan(&measurementId)
-
-	log.Printf("id: %v", measurementId)
+	log.Printf("Object key: %v", key)
 
 	c.JSON(http.StatusOK, gin.H{"measurement": measurementId})
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"os"
 	"path/filepath"
 
@@ -20,6 +21,18 @@ type MinioStore struct {
 
 func (m MinioStore) SaveFile(fileInfo *zip.File, openFile io.ReadCloser, bucketName string) (string, error) {
 	status, err := m.minioClient.PutObject(context.Background(), bucketName, filepath.ToSlash(fileInfo.Name), openFile, fileInfo.FileInfo().Size(), minio.PutObjectOptions{})
+	if err != nil {
+		return "", fmt.Errorf("error in upload to minio: %v", err)
+	}
+	err = openFile.Close()
+	if err != nil {
+		return "", fmt.Errorf("error in closing file: %v", err)
+	}
+	return status.Key, nil
+}
+
+func (m MinioStore) SaveImage(fileInfo *multipart.FileHeader, openFile io.ReadCloser, bucketName string, observationName string) (string, error) {
+	status, err := m.minioClient.PutObject(context.Background(), bucketName, filepath.ToSlash(observationName+"/"+fileInfo.Filename), openFile, fileInfo.Size, minio.PutObjectOptions{})
 	if err != nil {
 		return "", fmt.Errorf("error in upload to minio: %v", err)
 	}
