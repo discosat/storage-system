@@ -4,15 +4,14 @@ import (
 	"archive/zip"
 	"context"
 	"fmt"
+	"github.com/joho/godotenv"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 	"io"
 	"log"
 	"mime/multipart"
 	"os"
 	"path/filepath"
-
-	"github.com/joho/godotenv"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 type MinioStore struct {
@@ -52,16 +51,15 @@ func (m MinioStore) BucketExists(bucketName string) (bool, error) {
 }
 
 func NewMinioStore() MinioStore {
-	er := godotenv.Load("cmd/dim/.env")
-	if er != nil {
-		log.Fatalf("NewMinioStore: Cant find env - %v", er)
+	err := godotenv.Load("cmd/dim/.env")
+	if err != nil {
+		log.Fatalf("NewMinioStore: Cant find env - %v", err)
 	}
 	endpoint := os.Getenv("MINIO_ENDPOINT")
 	accessKeyID := os.Getenv("MINO_ACCESS_KEY_ID")
 	secretAccessKey := os.Getenv("MINIO_SECRET_ACCESS_KEY")
 	useSSL := true
 
-	var err error
 	minioC, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
 		Secure: useSSL,
@@ -69,6 +67,12 @@ func NewMinioStore() MinioStore {
 
 	if err != nil {
 		log.Fatalf("NewMinioStore: %v", err)
+	}
+
+	// Check if minio is up and running
+	_, err = minioC.ListBuckets(context.Background())
+	if err != nil {
+		log.Fatalf("Could not connect to Minio instance. Double check that it is up and running, and that you have provided correct credentials")
 	}
 
 	return MinioStore{minioClient: minioC}
