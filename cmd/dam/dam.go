@@ -32,13 +32,15 @@ func RequestHandler(c *gin.Context) {
 	filteredReq := FilterEmptyFields(req)
 	log.Println(filteredReq)
 
-	shouldReturnImage := QueryParser(filteredReq)
+	QueryParser(filteredReq)
 
-	ResponseHandler(c, shouldReturnImage)
+	imageFound := ImageBundler()
+
+	ResponseHandler(c, imageFound)
 }
 
-func ResponseHandler(c *gin.Context, shouldReturnImage bool) {
-	if shouldReturnImage {
+func ResponseHandler(c *gin.Context, imageFound bool) {
+	if imageFound {
 		imagePath := filepath.Join("cmd", "mock_images", "Greenland_Glacier_Mock.jpg")
 		c.File(imagePath)
 		return

@@ -1,5 +1,5 @@
 package dam
 
-func ImageBundler() {
-
+func ImageBundler() bool {
+	return true
 }
