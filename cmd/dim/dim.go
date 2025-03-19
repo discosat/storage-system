@@ -120,13 +120,15 @@ type Request struct {
 }
 
 type MeasurementRequest struct {
-	id    int
-	mType string
-	rId   int
+	Id    int    `json:"id"`
+	MType string `json:"m_type"`
+	RId   int    `json:"r_id"`
 }
 
 func UploadImage(c *gin.Context) {
 
+	id := c.Request.FormValue("requestId")
+	log.Printf("Querying for request with id %v", id)
 	//file, err := c.FormFile("file")
 	//if err != nil {
 	//	ErrortAbortMessage(c, http.StatusBadRequest, err)
@@ -136,15 +138,41 @@ func UploadImage(c *gin.Context) {
 
 	var mission Mission
 	var request Request
-	//var measurementRequests []MeasurementRequest
 
-	row := db.QueryRow("SELECT * FROM request r INNER JOIN mission m on m.id = r.mission_id WHERE r.id = ?", 1)
+	row := db.QueryRow("SELECT * FROM request r INNER JOIN mission m on m.id = r.mission_id where r.id = $1", id)
 	if err := row.Scan(&request.id, &request.name, &request.uId, &request.mId, &mission.id, &mission.name, &mission.bucket); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			log.Fatalf("dø: %v", err)
+			ErrortAbortMessage(c, http.StatusNotFound, err)
+			return
 		}
-		log.Fatalf("øøøøh: %v", err)
+		//log.Fatalf("Unknown SQL error: %v", err)
+		ErrortAbortMessage(c, http.StatusInternalServerError, err)
+		return
 	}
+
+	var measurementRequests []MeasurementRequest
+	rows, err := db.Query("SELECT * FROM measurement_request WHERE request_id = $1", request.id)
+	if err != nil {
+		ErrortAbortMessage(c, http.StatusNotFound, err)
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var mr MeasurementRequest
+		if err := rows.Scan(&mr.Id, &mr.RId, &mr.MType); err != nil {
+			ErrortAbortMessage(c, http.StatusInternalServerError, err)
+			return
+		}
+		log.Println(mr)
+		measurementRequests = append(measurementRequests, mr)
+	}
+	if err = rows.Err(); err != nil {
+		ErrortAbortMessage(c, http.StatusInternalServerError, err)
+	}
+
+	log.Println(measurementRequests)
+	c.JSON(http.StatusOK, gin.H{"mrs": measurementRequests})
 
 	log.Println(mission)
 	log.Println(request)
