@@ -32,7 +32,7 @@ func RequestHandler(c *gin.Context) {
 	filteredReq := FilterEmptyFields(req)
 	log.Println(filteredReq)
 
-	QueryParser(filteredReq)
+	//QueryParser(filteredReq)
 
 	imageFound := ImageBundler()
 

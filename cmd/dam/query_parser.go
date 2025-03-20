@@ -1,14 +1,16 @@
 package dam
 
-import "log"
+import (
+	"github.com/discosat/storage-system/cmd/interfaces"
+)
 
-func QueryParser(requestData map[string]interface{}) bool {
-	log.Println("Initiating query parser with request data: ", requestData)
+type QueryParser struct {
+	optimizer interfaces.QueryOptimizer
+}
 
-	if imgID, ok := requestData["img_id"].(string); ok && imgID == "1" {
-		log.Println("Returning id: ", imgID)
-		return true
-	}
-
-	return false
+func NewQueryParser(optimizer interfaces.QueryOptimizer) *QueryParser {
+	return &QueryParser{optimizer: optimizer}
+}
+func (qp *QueryParser) ParseQuery(query string) (string, error) {
+	return qp.optimizer.Optimize(query)
 }
