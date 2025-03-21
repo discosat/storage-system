@@ -1,6 +1,7 @@
 package dam
 
 import (
+	"github.com/discosat/storage-system/cmd/qom"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -32,7 +33,13 @@ func RequestHandler(c *gin.Context) {
 	filteredReq := FilterEmptyFields(req)
 	log.Println(filteredReq)
 
-	//QueryParser(filteredReq)
+	discoQO := &qom.DiscoQO{}
+	parser := NewQueryParser(discoQO)
+
+	err := parser.ParseQuery(filteredReq)
+	if err != nil {
+		log.Fatal("Error passing query", err)
+	}
 
 	imageFound := ImageBundler()
 
