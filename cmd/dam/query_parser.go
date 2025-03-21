@@ -11,6 +11,6 @@ type QueryParser struct {
 func NewQueryParser(optimizer interfaces.QueryOptimizer) *QueryParser {
 	return &QueryParser{optimizer: optimizer}
 }
-func (qp *QueryParser) ParseQuery(query string) (string, error) {
+func (qp *QueryParser) ParseQuery(query string) error {
 	return qp.optimizer.Optimize(query)
 }
