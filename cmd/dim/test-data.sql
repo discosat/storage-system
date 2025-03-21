@@ -3,6 +3,8 @@ INSERT INTO "user"(name, institution) VALUES ('Hans Pedersen', 'SDU');
 INSERT INTO mission(name, bucket) VALUES ('Disco2', 'disco2data');
 
 INSERT INTO request (name, mission_id, user_id) VALUES ('observation 1', 1, 1);
+INSERT INTO request (name, mission_id, user_id) VALUES ('observation 2', 1, 1);
+INSERT INTO request (name, mission_id, user_id) VALUES ('observation 3', 1, 1);
 
 -- Measurement request list
 INSERT INTO measurement_request(request_id, type) VALUES (1, 'Wide-Image');
@@ -43,4 +45,7 @@ SELECT r.name, m.object_reference FROM observation
                                            FULL JOIN measurement m on observation.id = m.observation_id
                                            FULL JOIN public.request r on r.id = observation.request_id WHERE request_id = 1;
 
-SELECT * FROM measurement WHERE id = 6
+SELECT * FROM measurement WHERE id = 6;
+
+SELECT r.id, r.name, r.user_id, r.mission_id FROM request r
+    LEFT JOIN public.observation o on r.id = o.request_id WHERE o.id IS NULL;
