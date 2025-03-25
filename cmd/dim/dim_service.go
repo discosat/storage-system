@@ -2,14 +2,18 @@ package dim
 
 import (
 	"archive/zip"
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 )
 
@@ -59,32 +63,34 @@ func handleUploadImage(c *gin.Context) {
 		return
 	}
 
-	// Gets the measurement request to relate the measurement to
-	var measurementRequest MeasurementRequest
-	row = db.QueryRow("SELECT * FROM measurement_request WHERE request_id = $1 AND type = $2", requestId, "Narrow-Image")
-	if err := row.Scan(&measurementRequest.Id, &measurementRequest.RId, &measurementRequest.MType); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			ErrorAbortMessage(c, http.StatusNotFound, err)
-			return
-		}
-		ErrorAbortMessage(c, http.StatusInternalServerError, err)
-		return
-	}
+	//// Gets the measurement request to relate the measurement to
+	//var measurementRequest MeasurementRequest
+	//row = db.QueryRow("SELECT * FROM measurement_request WHERE request_id = $1 AND type = $2", requestId, "Narrow-Image")
+	//if err := row.Scan(&measurementRequest.Id, &measurementRequest.RId, &measurementRequest.MType); err != nil {
+	//	if errors.Is(err, sql.ErrNoRows) {
+	//		ErrorAbortMessage(c, http.StatusNotFound, err)
+	//		return
+	//	}
+	//	ErrorAbortMessage(c, http.StatusInternalServerError, err)
+	//	return
+	//}
 
 	// Inserts measurement into db/object store
 	var measurementId int
-
 	oFile, err := file.Open()
 	if err != nil {
 		ErrorAbortMessage(c, http.StatusBadRequest, err)
 		return
 	}
+
+	measurementRequest := exifData(&oFile)
+
 	key, err := ObjectStore.ds.SaveImage(file, oFile, mission.Bucket, request.Name)
 	if err != nil {
 		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
-	err = db.QueryRow("INSERT INTO measurement(object_reference, observation_id, measurement_request_id) VALUES ($1, $2, $3) RETURNING id", key, observation.Id, measurementRequest.Id).Scan(&measurementId)
+	err = db.QueryRow("INSERT INTO measurement(object_reference, observation_id, measurement_request_id) VALUES ($1, $2, $3) RETURNING id", key, observation.Id, measurementRequest).Scan(&measurementId)
 	log.Printf("Object key: %v", key)
 	c.JSON(http.StatusOK, gin.H{"measurement": measurementId})
 	return
@@ -215,4 +221,28 @@ func handleGetRequestsNoObservation(c *gin.Context) ([]Request, error) {
 
 	return requests, nil
 
+}
+
+func exifData(oFile *multipart.File) int {
+	// EXIF START
+	raw, err := io.ReadAll(*oFile)
+	cmd := exec.Command("exiftool", "-json", "-")
+	cmd.Stdin = bytes.NewReader(raw)
+	r, err := cmd.Output()
+	if err != nil {
+		log.Fatalf("err: %v", err)
+	}
+
+	// Unmarshal the EXIF data to a map of properties in the comment tag
+	var t []map[string]string
+	json.Unmarshal(r, &t)
+	s := t[0]["Comment"]
+	var l map[string]int
+	err = json.Unmarshal([]byte(s), &l)
+	if err != nil {
+		log.Fatalf("err 3: %v", err)
+	}
+	relatedMeasurementRequest := l["measurementRequest"]
+	return relatedMeasurementRequest
+	// EXIF END
 }
