@@ -30,13 +30,13 @@ func RequestHandler(c *gin.Context) {
 	auth := AuthService()
 	log.Println(auth)
 
-	filteredReq := FilterEmptyFields(req)
-	log.Println(filteredReq)
+	cleanedRequest := FilterOutEmptyFields(req)
+	log.Println(cleanedRequest)
 
 	discoQO := &qom.DiscoQO{}
 	parser := NewQueryParser(discoQO)
 
-	err := parser.ParseQuery(filteredReq)
+	err := parser.ParseQuery(cleanedRequest)
 	if err != nil {
 		log.Fatal("Error passing query", err)
 	}
