@@ -62,18 +62,9 @@ func handleUploadImage(c *gin.Context) {
 		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
-
-	//// Gets the measurement request to relate the measurement to
-	//var measurementRequest MeasurementRequest
-	//row = db.QueryRow("SELECT * FROM measurement_request WHERE request_id = $1 AND type = $2", requestId, "Narrow-Image")
-	//if err := row.Scan(&measurementRequest.Id, &measurementRequest.RId, &measurementRequest.MType); err != nil {
-	//	if errors.Is(err, sql.ErrNoRows) {
-	//		ErrorAbortMessage(c, http.StatusNotFound, err)
-	//		return
-	//	}
-	//	ErrorAbortMessage(c, http.StatusInternalServerError, err)
-	//	return
-	//}
+	// Gets related measurment request
+	measurementRequest := exifData(file)
+	//measurementRequest := 1
 
 	// Inserts measurement into db/object store
 	var measurementId int
@@ -83,18 +74,28 @@ func handleUploadImage(c *gin.Context) {
 		return
 	}
 
-	measurementRequest := exifData(&oFile)
+	// Checks if measurement request exists
+	row = db.QueryRow("SELECT * FROM measurement_request WHERE id = $1", measurementRequest)
+	if err := row.Err(); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ErrorAbortMessage(c, http.StatusNotFound, err)
+			return
+		}
+		ErrorAbortMessage(c, http.StatusInternalServerError, err)
+		return
+	}
 
+	// Saves image in object store
 	key, err := ObjectStore.ds.SaveImage(file, oFile, mission.Bucket, request.Name)
 	if err != nil {
 		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
+	// Saves reference to object in SQL DB
 	err = db.QueryRow("INSERT INTO measurement(object_reference, observation_id, measurement_request_id) VALUES ($1, $2, $3) RETURNING id", key, observation.Id, measurementRequest).Scan(&measurementId)
 	log.Printf("Object key: %v", key)
 	c.JSON(http.StatusOK, gin.H{"measurement": measurementId})
 	return
-
 }
 
 func handleUploadBatch(c *gin.Context) {
@@ -223,9 +224,15 @@ func handleGetRequestsNoObservation(c *gin.Context) ([]Request, error) {
 
 }
 
-func exifData(oFile *multipart.File) int {
-	// EXIF START
-	raw, err := io.ReadAll(*oFile)
+func exifData(file *multipart.FileHeader) int {
+	oFile, err := file.Open()
+	if err != nil {
+		log.Fatalf("exifData: %v", err)
+	}
+	defer oFile.Close()
+
+	// call exifTool
+	raw, err := io.ReadAll(oFile)
 	cmd := exec.Command("exiftool", "-json", "-")
 	cmd.Stdin = bytes.NewReader(raw)
 	r, err := cmd.Output()
@@ -244,5 +251,4 @@ func exifData(oFile *multipart.File) int {
 	}
 	relatedMeasurementRequest := l["measurementRequest"]
 	return relatedMeasurementRequest
-	// EXIF END
 }

@@ -49,11 +49,3 @@ CREATE TABLE measurement_metadata (
     measurement_id INT NOT NULL,
     CONSTRAINT fk_measurement FOREIGN KEY(measurement_id) REFERENCES measurement(id)
 );
-
-
--- CREATE TABLE IF NOT EXISTS measurements (
---     id SERIAL PRIMARY KEY,
---     mission_id INT NOT NULL,
---     ref VARCHAR(255) NOT NULL
--- );
-
