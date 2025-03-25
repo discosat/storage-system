@@ -12,7 +12,3 @@ type ImageRequest struct {
 	CamType   *string  `form:"cam_type" binding:"required"`
 	Date      *int64   `form:"date" binding:"omitempty"`
 }
-
-type ImageReqInterface interface {
-	GetImageReq() ImageRequest
-}
