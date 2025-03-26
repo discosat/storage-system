@@ -21,8 +21,8 @@ func (q *DiscoQO) Optimize(query string) error {
 }
 
 func StringToSQLTranslator(queryArray []string) {
-	for i, v := range queryArray {
-		log.Println(i, ": ", v)
+	for v := range queryArray {
+		log.Println("Query String: ", queryArray[v])
 	}
 }
 
