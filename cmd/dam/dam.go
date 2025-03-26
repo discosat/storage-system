@@ -1,9 +1,11 @@
 package dam
 
 import (
+	"github.com/discosat/storage-system/cmd/qom"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"path/filepath"
 )
 
 func Start() {
@@ -28,14 +30,30 @@ func RequestHandler(c *gin.Context) {
 	auth := AuthService()
 	log.Println(auth)
 
-	filteredReq := FilterEmptyFields(req)
-	log.Println(filteredReq)
+	cleanedRequest := FilterOutEmptyFields(req)
+	log.Println(cleanedRequest)
 
-	ReturnHandler(c)
+	discoQO := &qom.DiscoQO{}
+	parser := NewQueryParser(discoQO)
+
+	err := parser.ParseQuery(cleanedRequest)
+	if err != nil {
+		log.Fatal("Error passing query", err)
+	}
+
+	imageFound := ImageBundler()
+
+	ResponseHandler(c, imageFound)
 }
 
-func ReturnHandler(c *gin.Context) {
+func ResponseHandler(c *gin.Context, imageFound bool) {
+	if imageFound {
+		imagePath := filepath.Join("cmd", "mock_images", "Greenland_Glacier_Mock.jpg")
+		c.File(imagePath)
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Success",
+		"message": "No images matched the query",
 	})
 }
