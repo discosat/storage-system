@@ -13,9 +13,17 @@ func (q *DiscoQO) Optimize(query string) error {
 
 	splitString := strings.Split(query, ",")
 
-	log.Println(splitString)
+	log.Println("Split string in QOM: ", splitString)
+
+	StringToSQLTranslator(splitString)
 
 	return nil
+}
+
+func StringToSQLTranslator(queryArray []string) {
+	for i, v := range queryArray {
+		log.Println(i, ": ", v)
+	}
 }
 
 var _ interfaces.QueryOptimizer = (*DiscoQO)(nil)
