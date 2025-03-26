@@ -1,7 +1,7 @@
 package dam
 
 import (
-	"github.com/discosat/storage-system/cmd/qom"
+	"github.com/discosat/storage-system/cmd/disco_qom"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -33,7 +33,7 @@ func RequestHandler(c *gin.Context) {
 	cleanedRequest := FilterOutEmptyFields(req)
 	log.Println(cleanedRequest)
 
-	discoQO := &qom.DiscoQO{}
+	discoQO := &disco_qom.DiscoQO{}
 	parser := NewQueryParser(discoQO)
 
 	err := parser.ParseQuery(cleanedRequest)
