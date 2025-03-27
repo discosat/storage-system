@@ -27,22 +27,22 @@ func (qp *QueryParser) ParseQuery(query map[string]interface{}) error {
 
 		switch v := val.(type) {
 		case string:
-			stringQuery += key + ":" + v + ", "
+			stringQuery += key + ":" + v + ","
 		case float64:
-			stringQuery += key + ":" + fmt.Sprintf("%f", v) + ", "
+			stringQuery += key + ":" + fmt.Sprintf("%f", v) + ","
 		case int64:
-			stringQuery += key + ":" + fmt.Sprintf("%d", v) + ", "
+			stringQuery += key + ":" + fmt.Sprintf("%d", v) + ","
 		case *string:
 			if v != nil {
-				stringQuery += key + ":" + fmt.Sprintf(*v) + ", "
+				stringQuery += key + ":" + fmt.Sprintf(*v) + ","
 			}
 		case *float64:
 			if v != nil {
-				stringQuery += key + ":" + fmt.Sprintf("%f", *v) + ", "
+				stringQuery += key + ":" + fmt.Sprintf("%f", *v) + ","
 			}
 		case *int64:
 			if v != nil {
-				stringQuery += key + ":" + fmt.Sprintf("%d", *v) + ", "
+				stringQuery += key + ":" + fmt.Sprintf("%d", *v) + ","
 			}
 		default:
 			log.Fatal("Unsupported type in query", v)

@@ -1,7 +1,7 @@
 package dam
 
 import (
-	"github.com/discosat/storage-system/cmd/qom"
+	"github.com/discosat/storage-system/cmd/interfaces"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -20,7 +20,7 @@ func Start() {
 }
 
 func RequestHandler(c *gin.Context) {
-	var req ImageRequest
+	var req interfaces.ImageRequest
 
 	if err := c.ShouldBindQuery(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"Error": err.Error()})
@@ -30,16 +30,8 @@ func RequestHandler(c *gin.Context) {
 	auth := AuthService()
 	log.Println(auth)
 
-	cleanedRequest := FilterOutEmptyFields(req)
-	log.Println(cleanedRequest)
-
-	discoQO := &qom.DiscoQO{}
-	parser := NewQueryParser(discoQO)
-
-	err := parser.ParseQuery(cleanedRequest)
-	if err != nil {
-		log.Fatal("Error passing query", err)
-	}
+	//cleanedRequest := FilterOutEmptyFields(req)
+	//log.Println(cleanedRequest)
 
 	imageFound := ImageBundler()
 
