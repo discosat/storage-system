@@ -27,14 +27,17 @@ func RequestHandler(c *gin.Context) {
 		return
 	}
 
+	//Authenticating the request
 	auth := AuthService()
 	log.Println(auth)
 
-	//cleanedRequest := FilterOutEmptyFields(req)
-	//log.Println(cleanedRequest)
+	//Passing request on to QOM
+	//insert function to pass on query here
 
+	//bundling images together
 	imageFound := ImageBundler()
 
+	//Handle response
 	ResponseHandler(c, imageFound)
 }
 

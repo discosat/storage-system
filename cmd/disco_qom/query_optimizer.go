@@ -18,4 +18,4 @@ func StringToSQLTranslator(queryArray []string) {
 	}
 }
 
-var _ interfaces.QueryOptimizer = (*DiscoQO)(nil)
+//var _ interfaces.QueryOptimizer = (*DiscoQO)(nil)

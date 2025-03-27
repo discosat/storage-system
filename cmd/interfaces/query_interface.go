@@ -4,5 +4,5 @@ package interfaces
 It (so far) contains a single method "Optimize" which takes a query string as input, and returns an error if one occurs*/
 
 type QueryOptimizer interface {
-	Optimize(query string) error
+	Optimize(query ImageRequest) error
 }

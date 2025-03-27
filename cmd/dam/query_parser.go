@@ -1,16 +1,15 @@
 package dam
 
 import (
-	"fmt"
 	"github.com/discosat/storage-system/cmd/interfaces"
 	"log"
 )
 
 type QueryParser struct {
-	optimizer interfaces.QueryOptimizer
+	qom interfaces.QueryOptimizer
 }
 
-func NewQueryParser(optimizer interfaces.QueryOptimizer) *QueryParser {
+/*func NewQueryParser(optimizer interfaces.QueryOptimizer) *QueryParser {
 	return &QueryParser{optimizer: optimizer}
 }
 
@@ -54,4 +53,19 @@ func (qp *QueryParser) ParseQuery(query map[string]interface{}) error {
 	}
 
 	return qp.optimizer.Optimize(stringQuery)
+}*/
+
+func newQueryParser(qom interfaces.QueryOptimizer) *QueryParser {
+	return &QueryParser{qom: qom}
+}
+
+func (p *QueryParser) ParseQuery(query interfaces.ImageRequest) error {
+	err := p.qom.Optimize(query)
+
+	if err != nil {
+		log.Println("Error passing on query", err)
+		return err
+	}
+
+	return nil
 }
