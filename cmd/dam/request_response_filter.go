@@ -1,8 +1,11 @@
 package dam
 
-import "reflect"
+import (
+	"github.com/discosat/storage-system/cmd/interfaces"
+	"reflect"
+)
 
-func FilterOutEmptyFields(req ImageRequest) map[string]interface{} {
+func FilterOutEmptyFields(req interfaces.ImageRequest) map[string]interface{} {
 	filteredResult := make(map[string]interface{})
 	val := reflect.ValueOf(req)
 	typ := reflect.TypeOf(req)

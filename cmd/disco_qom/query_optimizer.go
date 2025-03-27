@@ -3,19 +3,11 @@ package disco_qom
 import (
 	"github.com/discosat/storage-system/cmd/interfaces"
 	"log"
-	"strings"
 )
 
 type DiscoQO struct{}
 
-func (q *DiscoQO) Optimize(query string) error {
-	log.Println("Logging Query in QOM: ", query)
-
-	splitString := strings.Split(query, ",")
-
-	log.Println("Split string in QOM: ", splitString)
-
-	StringToSQLTranslator(splitString)
+func Optimize(query interfaces.ImageRequest) error {
 
 	return nil
 }

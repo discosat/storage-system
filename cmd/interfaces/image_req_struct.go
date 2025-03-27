@@ -1,4 +1,4 @@
-package dam
+package interfaces
 
 type ImageRequest struct {
 	ImgID     *string  `form:"img_id" binding:"omitempty"`
