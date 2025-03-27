@@ -7,7 +7,7 @@ import (
 
 type DiscoQO struct{}
 
-func Optimize(query interfaces.ImageRequest) error {
+func (q *DiscoQO) Optimize(query interfaces.ImageRequest) error {
 
 	return nil
 }

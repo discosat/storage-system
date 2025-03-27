@@ -13,7 +13,7 @@ type QueryParser struct {
 	return &QueryParser{optimizer: optimizer}
 }
 
-func (qp *QueryParser) ParseQuery(query map[string]interface{}) error {
+func (qp *QueryParser) PushQuery(query map[string]interface{}) error {
 	stringQuery := ""
 
 	log.Println("DAM query logged in query_parser: ", query)
@@ -55,11 +55,11 @@ func (qp *QueryParser) ParseQuery(query map[string]interface{}) error {
 	return qp.optimizer.Optimize(stringQuery)
 }*/
 
-func newQueryParser(qom interfaces.QueryOptimizer) *QueryParser {
+func newQueryPusher(qom interfaces.QueryOptimizer) *QueryParser {
 	return &QueryParser{qom: qom}
 }
 
-func (p *QueryParser) ParseQuery(query interfaces.ImageRequest) error {
+func (p *QueryParser) PushQuery(query interfaces.ImageRequest) error {
 	err := p.qom.Optimize(query)
 
 	if err != nil {

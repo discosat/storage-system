@@ -1,6 +1,7 @@
 package dam
 
 import (
+	"github.com/discosat/storage-system/cmd/disco_qom"
 	"github.com/discosat/storage-system/cmd/interfaces"
 	"github.com/gin-gonic/gin"
 	"log"
@@ -32,7 +33,13 @@ func RequestHandler(c *gin.Context) {
 	log.Println(auth)
 
 	//Passing request on to QOM
-	//insert function to pass on query here
+	discoQO := &disco_qom.DiscoQO{}
+	parser := newQueryPusher(discoQO)
+
+	passingErr := parser.PushQuery(req)
+	if passingErr != nil {
+		log.Fatal("Failed to pass query to QOM", passingErr)
+	}
 
 	//bundling images together
 	imageFound := ImageBundler()
