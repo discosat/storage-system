@@ -5,15 +5,15 @@ import (
 	"log"
 )
 
-type QueryParser struct {
+type QueryPusher struct {
 	qom interfaces.QueryOptimizer
 }
 
-func newQueryPusher(qom interfaces.QueryOptimizer) *QueryParser {
-	return &QueryParser{qom: qom}
+func newQueryPusher(qom interfaces.QueryOptimizer) *QueryPusher {
+	return &QueryPusher{qom: qom}
 }
 
-func (p *QueryParser) PushQuery(query interfaces.ImageRequest) error {
+func (p *QueryPusher) PushQuery(query interfaces.ImageRequest) error {
 	err := p.qom.Optimize(query)
 
 	if err != nil {

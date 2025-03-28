@@ -1,6 +1,7 @@
 package dam
 
 import (
+	"fmt"
 	"github.com/discosat/storage-system/cmd/disco_qom"
 	"github.com/discosat/storage-system/cmd/interfaces"
 	"github.com/gin-gonic/gin"
@@ -30,13 +31,13 @@ func RequestHandler(c *gin.Context) {
 
 	//Authenticating the request
 	auth := AuthService()
-	log.Println(auth)
+	fmt.Println(auth)
 
 	//Passing request on to QOM
 	discoQO := &disco_qom.DiscoQO{}
-	parser := newQueryPusher(discoQO)
+	queryPusher := newQueryPusher(discoQO)
 
-	passingErr := parser.PushQuery(req)
+	passingErr := queryPusher.PushQuery(req)
 	if passingErr != nil {
 		log.Fatal("Failed to pass query to QOM", passingErr)
 	}
