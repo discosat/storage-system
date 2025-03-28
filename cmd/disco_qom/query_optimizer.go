@@ -1,21 +1,21 @@
 package disco_qom
 
 import (
+	"fmt"
 	"github.com/discosat/storage-system/cmd/interfaces"
-	"log"
 )
 
 type DiscoQO struct{}
 
-func Optimize(query interfaces.ImageRequest) error {
+func (q *DiscoQO) Optimize(query interfaces.ImageRequest) error {
 
 	return nil
 }
 
 func StringToSQLTranslator(queryArray []string) {
 	for v := range queryArray {
-		log.Println("Query String: ", queryArray[v])
+		fmt.Println("Query String: ", queryArray[v])
 	}
 }
 
-var _ interfaces.QueryOptimizer = (*DiscoQO)(nil)
+//var _ interfaces.QueryOptimizer = (*DiscoQO)(nil)
