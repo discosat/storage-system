@@ -1,1 +1,1 @@
-GET localhost:8081/search-images?cam_type=infrared&img_id=12ak34
+GET localhost:8081/search-images?cam_type=Wide&img_id=876dk33&date=1751190836&lat_from=0&lat_to=90&lon_from=0&lon_to=180
