@@ -8,13 +8,10 @@ import (
 
 type DiscoQO struct{}
 
-func (q *DiscoQO) Optimize(query interfaces.ImageRequest) error {
+func (q *DiscoQO) Optimize(query interfaces.ImageRequest) (string, []interface{}, error) {
 	sqlQuery, args := StringToSQLTranslator(query)
 
-	fmt.Println("Logging optimized query: ", sqlQuery)
-	fmt.Println("Logging optimized query arguments: ", args)
-
-	return nil
+	return sqlQuery, args, nil
 }
 
 func StringToSQLTranslator(query interfaces.ImageRequest) (string, []interface{}) {

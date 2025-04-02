@@ -37,10 +37,15 @@ func RequestHandler(c *gin.Context) {
 	discoQO := &disco_qom.DiscoQO{}
 	queryPusher := newQueryPusher(discoQO)
 
-	passingErr := queryPusher.PushQuery(req)
+	//Optimized query + arguments gets returned
+	sqlQuery, args, passingErr := queryPusher.PushQuery(req)
 	if passingErr != nil {
 		log.Fatal("Failed to pass query to QOM", passingErr)
 	}
+
+	//Calling db with SQL query string and arguments
+	fmt.Println("Logging optimized query in dam.go: ", sqlQuery)
+	fmt.Println("Logging optimized query arguments in dam.go: ", args)
 
 	//bundling images together
 	imageFound := ImageBundler()
