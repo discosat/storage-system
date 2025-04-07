@@ -6,7 +6,9 @@ require (
 	github.com/gin-gonic/gin v1.10.0
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/joho/godotenv v1.5.1
+	github.com/lukeroth/gdal v0.0.0-20240301124940-d4ff2229365e
 	github.com/minio/minio-go/v7 v7.0.91
+	golang.org/x/image v0.25.0
 )
 
 require (

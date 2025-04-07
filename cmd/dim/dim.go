@@ -3,11 +3,14 @@ package dim
 import (
 	"database/sql"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"golang.org/x/image/tiff"
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/gin-gonic/gin"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	//"github.com/lukeroth/gdal"
 )
 
 type Mission struct {
@@ -55,14 +58,39 @@ func Start() {
 	router.GET("/missions", GetMissions)
 	router.GET("/requests", GetRequests)
 	router.GET("/requestsNoObservation", GetRequestsNoObservation)
+	router.GET("/test", test)
 
 	router.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+}
+
+func test(c *gin.Context) {
+	ima, err := os.Open("cmd/dim/Oense.tif")
+	if err != nil {
+		log.Fatalf("error1: %v", err)
+	}
+
+	config, err := tiff.DecodeConfig(ima)
+	if err != nil {
+		log.Fatalf("error3: %v", err)
+	}
+	log.Println(config.Width)
+
+	//driver, err := gdal.GetDriverByName("GTiff")
+	//if err != nil {
+	//	log.Fatalf("error2: %v", err)
+	//}
+	//driver.Create("cmd/dim/Oense.tif", config.Width, config.Height)
+
 }
 
 func ConfigDatabase() *sql.DB {
 	db, err := sql.Open("pgx", fmt.Sprint("postgres://", os.Getenv("PGUSER"), ":", os.Getenv("PGPASSWORD"), "@", os.Getenv("PGHOST"), "/", os.Getenv("PGDATABASE")))
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
+	}
+	err = db.Ping()
+	if err != nil {
+		log.Fatalf("ConfigDatabase: Cannot connect to database; %v", err)
 	}
 	return db
 }

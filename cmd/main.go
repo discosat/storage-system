@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/discosat/storage-system/cmd/dim"
 	"fmt"
 	"github.com/discosat/storage-system/cmd/dam"
 	"github.com/joho/godotenv"
@@ -20,7 +21,7 @@ func main() {
 
 	// Initialize DIM and DAM services
 	go dam.Start()
-	//go dim.Start()
+	go dim.Start()
 
 	fmt.Println("DIM-DAM up and running")
 
