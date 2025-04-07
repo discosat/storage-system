@@ -27,7 +27,6 @@ func handleUploadImage(c *gin.Context) {
 		ErrorAbortMessage(c, http.StatusBadRequest, err)
 		return
 	}
-	log.Println(file.Filename)
 
 	// Getting request and mission data
 	var mission Mission
@@ -63,10 +62,9 @@ func handleUploadImage(c *gin.Context) {
 		return
 	}
 	// Gets related measurment request
-	measurementRequest := exifData(file)
-	//measurementRequest := 1
+	measurementRequest := extractMetadata(file)
 
-	// Inserts measurement into db/object store
+	// Opening file
 	var measurementId int
 	oFile, err := file.Open()
 	if err != nil {
@@ -224,10 +222,10 @@ func handleGetRequestsNoObservation(c *gin.Context) ([]Request, error) {
 
 }
 
-func exifData(file *multipart.FileHeader) int {
+func extractMetadata(file *multipart.FileHeader) int {
 	oFile, err := file.Open()
 	if err != nil {
-		log.Fatalf("exifData: %v", err)
+		log.Fatalf("extractMetadata: %v", err)
 	}
 	defer oFile.Close()
 
@@ -235,14 +233,14 @@ func exifData(file *multipart.FileHeader) int {
 	raw, err := io.ReadAll(oFile)
 	cmd := exec.Command("exiftool", "-json", "-")
 	cmd.Stdin = bytes.NewReader(raw)
-	r, err := cmd.Output()
+	result, err := cmd.Output()
 	if err != nil {
 		log.Fatalf("err: %v", err)
 	}
 
 	// Unmarshal the EXIF data to a map of properties in the comment tag
 	var t []map[string]string
-	json.Unmarshal(r, &t)
+	json.Unmarshal(result, &t)
 	s := t[0]["Comment"]
 	var l map[string]int
 	err = json.Unmarshal([]byte(s), &l)
