@@ -7,7 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	. "github.com/discosat/storage-system/internal/mission"
+	. "github.com/discosat/storage-system/internal/request"
 	"github.com/gin-gonic/gin"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"io"
 	"log"
 	"mime/multipart"
@@ -15,14 +18,16 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-
-	_ "github.com/jackc/pgx/v5/stdlib"
 )
+
+var requestRepo = PsqlRequestRepository{RequestRepository: PsqlRequestRepository{}}
+var missionRepo = PsqlMissionRepository{MissionRepository: PsqlMissionRepository{}}
 
 func handleUploadImage(c *gin.Context) {
 
 	//Binding POST data
 	requestId := c.Request.FormValue("requestId")
+
 	log.Printf("Querying for request with id %v", requestId)
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -37,21 +42,21 @@ func handleUploadImage(c *gin.Context) {
 	}
 
 	// Getting request and mission data
-	var mission Mission
-	var request Request
-	row := db.QueryRow("SELECT * FROM request r INNER JOIN mission m on m.id = r.mission_id where r.id = $1", requestId)
-	if err := row.Scan(&request.Id, &request.Name, &request.UserId, &request.MissionId, &mission.Id, &mission.Name, &mission.Bucket); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			ErrorAbortMessage(c, http.StatusNotFound, err)
-			return
-		}
+	request, err := requestRepo.GetById(db, requestId)
+	if err != nil {
+		ErrorAbortMessage(c, http.StatusNotFound, err)
+		return
+	}
+
+	mission, err := missionRepo.GetById(db, request.MissionId)
+	if err != nil {
 		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	// Checking if the observation that relates to the request has already been saved, or creates one if not
 	var observation Observation
-	row = db.QueryRow("SELECT * FROM observation WHERE request_id = $1", request.Id)
+	row := db.QueryRow("SELECT * FROM observation WHERE request_id = $1", request.Id)
 	err = row.Scan(&observation.Id, &observation.RequestId, &observation.UserId)
 
 	var qErr error

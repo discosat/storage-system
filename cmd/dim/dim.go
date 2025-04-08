@@ -11,18 +11,18 @@ import (
 	//"github.com/lukeroth/gdal"
 )
 
-type Mission struct {
-	Id     int    `json:"id"`
-	Name   string `json:"name"`
-	Bucket string `json:"bucket"`
-}
+//type Mission struct {
+//	Id     int    `json:"id"`
+//	Name   string `json:"name"`
+//	Bucket string `json:"bucket"`
+//}
 
-type Request struct {
-	Id        int    `json:"id"`
-	Name      string `json:"name"`
-	MissionId int    `json:"mission_id"`
-	UserId    int    `json:"user_id"`
-}
+//type Request struct {
+//	Id        int    `json:"id"`
+//	Name      string `json:"name"`
+//	MissionId int    `json:"mission_id"`
+//	UserId    int    `json:"user_id"`
+//}
 
 type MeasurementRequest struct {
 	Id    int    `json:"id"`
