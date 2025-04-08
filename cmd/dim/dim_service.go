@@ -15,6 +15,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func handleUploadImage(c *gin.Context) {
@@ -27,7 +29,9 @@ func handleUploadImage(c *gin.Context) {
 		ErrorAbortMessage(c, http.StatusBadRequest, err)
 		return
 	}
-
+	if err != nil {
+		log.Fatalf("Transaction: %v", err)
+	}
 	// Getting request and mission data
 	var mission Mission
 	var request Request
@@ -65,7 +69,6 @@ func handleUploadImage(c *gin.Context) {
 	measurementRequest := extractMetadata(file)
 
 	// Opening file
-	var measurementId int
 	oFile, err := file.Open()
 	if err != nil {
 		ErrorAbortMessage(c, http.StatusBadRequest, err)
@@ -83,6 +86,7 @@ func handleUploadImage(c *gin.Context) {
 		return
 	}
 
+	var measurementId int
 	// Saves image in object store
 	key, err := ObjectStore.ds.SaveImage(file, oFile, mission.Bucket, request.Name)
 	if err != nil {
@@ -91,7 +95,18 @@ func handleUploadImage(c *gin.Context) {
 	}
 	// Saves reference to object in SQL DB
 	err = db.QueryRow("INSERT INTO measurement(object_reference, observation_id, measurement_request_id) VALUES ($1, $2, $3) RETURNING id", key, observation.Id, measurementRequest).Scan(&measurementId)
+	if err != nil {
+		log.Fatalf("handleImageUpload: %v", err)
+	}
+
+	var metaId int
+	err = db.QueryRow("INSERT INTO measurement_metadata(measurement_id, location) VALUES ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326)) RETURNING id", measurementId, 10.4058633, 55.3821913).Scan(&metaId)
+	if err != nil {
+		log.Fatalf("Geom: %v", err)
+	}
+
 	log.Printf("Object key: %v", key)
+
 	c.JSON(http.StatusOK, gin.H{"measurement": measurementId})
 	return
 }

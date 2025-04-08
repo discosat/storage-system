@@ -47,5 +47,6 @@ CREATE TABLE measurement (
 CREATE TABLE measurement_metadata (
     id SERIAL PRIMARY KEY,
     measurement_id INT NOT NULL,
+    location GEOGRAPHY(Point, 4326),
     CONSTRAINT fk_measurement FOREIGN KEY(measurement_id) REFERENCES measurement(id)
 );
