@@ -50,6 +50,14 @@ func (m MinioStore) BucketExists(bucketName string) (bool, error) {
 	return exists, nil
 }
 
+func (m MinioStore) DeleteImage(imgRef string, bucketName string) (bool, error) {
+	err := m.minioClient.RemoveObject(context.Background(), bucketName, imgRef, minio.RemoveObjectOptions{})
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
 func NewMinioStore() MinioStore {
 	err := godotenv.Load("cmd/dim/.env")
 	if err != nil {

@@ -29,9 +29,13 @@ func handleUploadImage(c *gin.Context) {
 		ErrorAbortMessage(c, http.StatusBadRequest, err)
 		return
 	}
+
+	//Begin transaction
+	tx, err := db.Begin()
 	if err != nil {
 		log.Fatalf("Transaction: %v", err)
 	}
+
 	// Getting request and mission data
 	var mission Mission
 	var request Request
@@ -53,7 +57,7 @@ func handleUploadImage(c *gin.Context) {
 	var qErr error
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			qErr = db.QueryRow("INSERT INTO observation(request_id, user_id) VALUES ($1, $2) RETURNING id, request_id, user_id", request.Id, request.UserId).
+			qErr = tx.QueryRow("INSERT INTO observation(request_id, user_id) VALUES ($1, $2) RETURNING id, request_id, user_id", request.Id, request.UserId).
 				Scan(&observation.Id, &observation.RequestId, &observation.UserId)
 		} else {
 			ErrorAbortMessage(c, http.StatusInternalServerError, err)
@@ -94,15 +98,22 @@ func handleUploadImage(c *gin.Context) {
 		return
 	}
 	// Saves reference to object in SQL DB
-	err = db.QueryRow("INSERT INTO measurement(object_reference, observation_id, measurement_request_id) VALUES ($1, $2, $3) RETURNING id", key, observation.Id, measurementRequest).Scan(&measurementId)
+	err = tx.QueryRow("INSERT INTO measurement(object_reference, observation_id, measurement_request_id) VALUES ($1, $2, $3) RETURNING id", key, observation.Id, measurementRequest).Scan(&measurementId)
 	if err != nil {
 		log.Fatalf("handleImageUpload: %v", err)
 	}
 
 	var metaId int
-	err = db.QueryRow("INSERT INTO measurement_metadata(measurement_id, location) VALUES ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326)) RETURNING id", measurementId, 10.4058633, 55.3821913).Scan(&metaId)
+	err = tx.QueryRow("INSERT INTO measurement_metadata(measurement_id, location) VALUES ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326)) RETURNING id", measurementId, 10.4058633, 55.3821913).Scan(&metaId)
 	if err != nil {
 		log.Fatalf("Geom: %v", err)
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		ObjectStore.ds.DeleteImage(key, mission.Bucket)
+		ErrorAbortMessage(c, http.StatusBadRequest, err)
+		return
 	}
 
 	log.Printf("Object key: %v", key)
@@ -159,7 +170,7 @@ func handleUploadBatch(c *gin.Context) {
 			break
 		}
 		//var measurementId string
-		//err = db.QueryRow("INSERT INTO measurements (ref) VALUES ($1) RETURNING id", ref).Scan(&measurementId)
+		//err = tx.QueryRow("INSERT INTO measurements (ref) VALUES ($1) RETURNING id", ref).Scan(&measurementId)
 		//log.Printf("MEASUREMENT ID: %v", measurementId)
 	}
 
