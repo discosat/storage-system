@@ -3,13 +3,11 @@ package dim
 import (
 	"database/sql"
 	"fmt"
-	"golang.org/x/image/tiff"
+	"github.com/gin-gonic/gin"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"log"
 	"net/http"
 	"os"
-
-	"github.com/gin-gonic/gin"
-	_ "github.com/jackc/pgx/v5/stdlib"
 	//"github.com/lukeroth/gdal"
 )
 
@@ -64,23 +62,22 @@ func Start() {
 }
 
 func test(c *gin.Context) {
-	ima, err := os.Open("cmd/dim/Oense.tif")
-	if err != nil {
-		log.Fatalf("error1: %v", err)
-	}
-
-	config, err := tiff.DecodeConfig(ima)
-	if err != nil {
-		log.Fatalf("error3: %v", err)
-	}
-	log.Println(config.Width)
-
-	//driver, err := gdal.GetDriverByName("GTiff")
+	//ima, err := os.Open("cmd/dim/Oense.tif")
 	//if err != nil {
-	//	log.Fatalf("error2: %v", err)
+	//	log.Fatalf("error1: %v", err)
 	//}
-	//driver.Create("cmd/dim/Oense.tif", config.Width, config.Height)
-
+	//
+	//config, err := tiff.DecodeConfig(ima)
+	//if err != nil {
+	//	log.Fatalf("error3: %v", err)
+	//}
+	//log.Println(config.Width)
+	//
+	////driver, err := gdal.GetDriverByName("GTiff")
+	////if err != nil {
+	////	log.Fatalf("error2: %v", err)
+	////}
+	////driver.Create("cmd/dim/Oense.tif", config.Width, config.Height)
 }
 
 func ConfigDatabase() *sql.DB {

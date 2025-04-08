@@ -27,25 +27,27 @@ INSERT INTO measurement_request(request_id, type) VALUES (1, 'Other');
 --
 -- SELECT * FROM measurement_request where request_id = 1 AND type = 'Wide-Image';
 
-SELECT r.name FROM measurement
-    INNER JOIN public.measurement_request mr on mr.id = measurement.measurement_request_id
-    INNER JOIN public.request r on r.id = mr.request_id;
-
-SELECT r.name FROM measurement
-    INNER JOIN observation o on o.id = measurement.observation_id
-    INNER JOIN public.request r on o.request_id = r.id;
-
-SELECT * FROM observation where request_id = 1;
-
-SELECT * FROM request
-                  FULL JOIN measurement_request mr on request.id = mr.request_id
-                  FULL JOIN measurement m on mr.id = m.measurement_request_id WHERE request.id = 1 AND m.id IS NOT NULL;
-
-SELECT r.name, m.object_reference FROM observation
-                                           FULL JOIN measurement m on observation.id = m.observation_id
-                                           FULL JOIN public.request r on r.id = observation.request_id WHERE request_id = 1;
-
-SELECT * FROM measurement WHERE id = 6;
-
-SELECT r.id, r.name, r.user_id, r.mission_id FROM request r
-    LEFT JOIN public.observation o on r.id = o.request_id WHERE o.id IS NULL;
+-- SELECT r.name FROM measurement
+--     INNER JOIN public.measurement_request mr on mr.id = measurement.measurement_request_id
+--     INNER JOIN public.request r on r.id = mr.request_id;
+--
+-- SELECT r.name FROM measurement
+--     INNER JOIN observation o on o.id = measurement.observation_id
+--     INNER JOIN public.request r on o.request_id = r.id;
+--
+-- SELECT * FROM observation where request_id = 1;
+--
+-- SELECT * FROM request
+--                   FULL JOIN measurement_request mr on request.id = mr.request_id
+--                   FULL JOIN measurement m on mr.id = m.measurement_request_id WHERE request.id = 1 AND m.id IS NOT NULL;
+--
+-- SELECT r.name, m.object_reference FROM observation
+--                                            FULL JOIN measurement m on observation.id = m.observation_id
+--                                            FULL JOIN public.request r on r.id = observation.request_id WHERE request_id = 1;
+--
+-- SELECT * FROM measurement WHERE id = 6;
+--
+-- SELECT r.id, r.name, r.user_id, r.mission_id FROM request r
+--     LEFT JOIN public.observation o on r.id = o.request_id WHERE o.id IS NULL;
+--
+-- SELECT * FROM measurement_metadata;
