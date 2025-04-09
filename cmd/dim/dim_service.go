@@ -123,7 +123,7 @@ func handleUploadImage(c *gin.Context) {
 
 	log.Printf("Object key: %v", key)
 
-	c.JSON(http.StatusOK, gin.H{"measurement": measurementId})
+	c.JSON(http.StatusCreated, gin.H{"measurement": measurementId})
 	return
 }
 
