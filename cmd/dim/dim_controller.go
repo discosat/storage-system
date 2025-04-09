@@ -7,10 +7,12 @@ import (
 
 func UploadBatch(c *gin.Context) {
 	handleUploadBatch(c)
+	return
 }
 
 func UploadImage(c *gin.Context) {
 	handleUploadImage(c)
+	return
 }
 
 func GetMissions(c *gin.Context) {
