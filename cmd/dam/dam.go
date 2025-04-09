@@ -15,6 +15,10 @@ func Start() {
 
 	g.GET("/search-images", RequestHandler)
 
+	g.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
 	err := g.Run(":8081")
 	if err != nil {
 		log.Fatal("Failed to start server")
