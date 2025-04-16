@@ -5,12 +5,16 @@ import (
 )
 
 type PsqlMissionRepository struct {
-	MissionRepository MissionRepository
+	db *sql.DB
 }
 
-func (p PsqlMissionRepository) GetById(db *sql.DB, id int) (Mission, error) {
+func NewPsqlMissionRepository(db *sql.DB) MissionRepository {
+	return &PsqlMissionRepository{db: db}
+}
+
+func (p PsqlMissionRepository) GetById(id int) (Mission, error) {
 	var mission Mission
-	err := db.QueryRow("SELECT * FROM mission WHERE id = $1", id).Scan(&mission.Id, &mission.Name, &mission.Bucket)
+	err := p.db.QueryRow("SELECT * FROM mission WHERE id = $1", id).Scan(&mission.Id, &mission.Name, &mission.Bucket)
 	if err != nil {
 		return mission, err
 	}

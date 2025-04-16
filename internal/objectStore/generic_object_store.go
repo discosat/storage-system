@@ -1,4 +1,4 @@
-package dim
+package objectStore
 
 import (
 	"archive/zip"
@@ -13,12 +13,12 @@ type IDataStore interface {
 	DeleteImage(imgRef string, bucketName string) (bool, error)
 }
 
-type SimpleStore struct {
-	ds IDataStore
-}
+//type SimpleStore struct {
+//	ds IDataStore
+//}
 
-func NewSimpleStore(ds IDataStore) SimpleStore {
-	return SimpleStore{
-		ds: ds,
-	}
-}
+//func NewSimpleStore(ds IDataStore) SimpleStore {
+//	return SimpleStore{
+//		ds: ds,
+//	}
+//}
