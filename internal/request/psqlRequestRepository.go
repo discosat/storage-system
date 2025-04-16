@@ -3,12 +3,16 @@ package request
 import "database/sql"
 
 type PsqlRequestRepository struct {
-	RequestRepository RequestRepository
+	db *sql.DB
 }
 
-func (p PsqlRequestRepository) GetById(db *sql.DB, id string) (Request, error) {
+func NewPsqlRequestRepository(db *sql.DB) RequestRepository {
+	return &PsqlRequestRepository{db: db}
+}
+
+func (p PsqlRequestRepository) GetById(id string) (Request, error) {
 	var request Request
-	err := db.QueryRow("SELECT * FROM request WHERE id = $1", id).Scan(&request.Id, &request.Name, &request.UserId, &request.MissionId)
+	err := p.db.QueryRow("SELECT * FROM request WHERE id = $1", id).Scan(&request.Id, &request.Name, &request.UserId, &request.MissionId)
 	if err != nil {
 		return request, err
 	}

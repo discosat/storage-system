@@ -1,4 +1,4 @@
-package dim
+package objectStore
 
 import (
 	"archive/zip"
