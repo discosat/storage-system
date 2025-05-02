@@ -7,18 +7,18 @@ import (
 	"encoding/json"
 	"errors"
 	//"fmt"
-	. "github.com/discosat/storage-system/internal/measurement"
-	. "github.com/discosat/storage-system/internal/measurementMetadata"
-	. "github.com/discosat/storage-system/internal/measurementRequest"
+	. "github.com/discosat/storage-system/internal/flightPlan"
 	. "github.com/discosat/storage-system/internal/mission"
 	. "github.com/discosat/storage-system/internal/observation"
-	. "github.com/discosat/storage-system/internal/request"
+	. "github.com/discosat/storage-system/internal/observationMetadata"
+	. "github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
+
 	//"os"
 	"os/exec"
 	//"path/filepath"
@@ -29,73 +29,55 @@ type DimServiceInterface interface {
 }
 
 type DimService struct {
-	requestRepository             RequestRepository
 	missionRepository             MissionRepository
+	flightPlanRepository          FlightPlanRepository
+	observationRequestRepository  ObservationRequestRepository
 	observationRepository         ObservationRepository
-	measurementRequestRepository  MeasurementRequestRepository
-	measurementRepository         MeasurementRepository
-	measurementMetadataRepository MeasurementMetadataRepository
+	observationMetadataRepository ObservationMetadataRepository
 }
 
-func NewDimService(reRepo RequestRepository, miRepo MissionRepository, oRepo ObservationRepository, mrRepo MeasurementRequestRepository, meRepo MeasurementRepository, mdRepo MeasurementMetadataRepository) *DimService {
+func NewDimService(fpRepo FlightPlanRepository, miRepo MissionRepository, oRepo ObservationRepository, orRepo ObservationRequestRepository, omRepo ObservationMetadataRepository) *DimService {
 	return &DimService{
-		requestRepository:             reRepo,
+		flightPlanRepository:          fpRepo,
 		missionRepository:             miRepo,
+		observationRequestRepository:  orRepo,
 		observationRepository:         oRepo,
-		measurementRequestRepository:  mrRepo,
-		measurementRepository:         meRepo,
-		measurementMetadataRepository: mdRepo,
+		observationMetadataRepository: omRepo,
 	}
 }
 
 func (d DimService) handleUploadImage(c *gin.Context) {
 	//Binding POST data
-	requestId := c.Request.FormValue("requestId")
-
-	log.Printf("Querying for request with id %v", requestId)
+	flightPlanId := c.Request.FormValue("flightPlanId")
 	file, err := c.FormFile("file")
 	if err != nil {
 		ErrorAbortMessage(c, http.StatusBadRequest, err)
 		return
 	}
 
-	// Getting request and mission data
-	request, err := d.requestRepository.GetById(requestId)
+	// Getting flightPlan and mission data
+	log.Printf("Querying for FlightPlan with id %v", flightPlanId)
+	flightPlan, err := d.flightPlanRepository.GetById(flightPlanId)
 	if err != nil {
 		ErrorAbortMessage(c, http.StatusNotFound, err)
 		return
 	}
 
-	mission, err := d.missionRepository.GetById(request.MissionId)
+	log.Printf("Querying for Mission with id %v", flightPlan.MissionId)
+	mission, err := d.missionRepository.GetById(flightPlan.MissionId)
 	if err != nil {
-		ErrorAbortMessage(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	// Checking if the observation that relates to the request has already been saved, or creates one if not
-	observation, err := d.observationRepository.GetByRequest(request.Id)
-	var qErr error
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			observation, qErr = d.observationRepository.CreateObservation(request.Id, request.UserId)
-		} else {
-			ErrorAbortMessage(c, http.StatusInternalServerError, err)
-			return
-		}
-	}
-
-	if qErr != nil {
 		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
 
 	// TODO Do error handling
-	// Gets related measurment request
-	measurementRequestId := extractMetadata(file)
+	// Gets related measurment flightPlan
+	ObservationRequestId := extractMetadata(file)
 	// Opening file
 
-	// Checks if measurement request exists
-	measurementRequest, err := d.measurementRequestRepository.GetById(measurementRequestId)
+	// Checks if observation flightPlan exists
+	log.Printf("Querying for ObservationRequest with id %v", ObservationRequestId)
+	ObservationRequestEntity, err := d.observationRequestRepository.GetById(ObservationRequestId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			ErrorAbortMessage(c, http.StatusNotFound, err)
@@ -106,14 +88,14 @@ func (d DimService) handleUploadImage(c *gin.Context) {
 	}
 
 	// Saves image
-	measurementId, err := d.measurementRepository.CreateMeasurement(file, mission.Bucket, request.Name, observation.Id, measurementRequest.Id)
+	observationId, err := d.observationRepository.CreateObservation(file, mission.Bucket, flightPlan.Name, ObservationRequestEntity.Id)
 	if err != nil {
 		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		//log.Fatalf("handleImageUpload: %v", err)
 		return
 	}
 
-	_, err = d.measurementMetadataRepository.CreateMeasurementMetadata(measurementId, 10.4058633, 55.3821913)
+	_, err = d.observationMetadataRepository.CreateObservationMetadata(observationId, 10.4058633, 55.3821913)
 	if err != nil {
 		log.Fatalf("Geom: %v", err)
 	}
@@ -126,13 +108,13 @@ func (d DimService) handleUploadImage(c *gin.Context) {
 	//	return
 	//}
 
-	c.JSON(http.StatusCreated, gin.H{"measurement": measurementId})
+	c.JSON(http.StatusCreated, gin.H{"observation": observationId})
 	return
 }
 
 //func handleUploadBatch(c *gin.Context) {
 //
-//	bucketName := c.Request.FormValue("bucketName")
+//	bucketName := c.FlightPlan.FormValue("bucketName")
 //
 //	exists, err := ObjectStore.ds.BucketExists(bucketName)
 //	if err != nil {
@@ -146,7 +128,7 @@ func (d DimService) handleUploadImage(c *gin.Context) {
 //		return
 //	}
 //
-//	file, _, err := c.Request.FormFile("batch")
+//	file, _, err := c.FlightPlan.FormFile("batch")
 //	if err != nil {
 //		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 //		return
@@ -208,22 +190,22 @@ func (d DimService) handleUploadImage(c *gin.Context) {
 //	return missions, nil
 //}
 //
-//func handleGetRequests(c *gin.Context) ([]Request, error) {
+//func handleGetRequests(c *gin.Context) ([]FlightPlan, error) {
 //
 //	missionId := c.Query("missionId")
 //
-//	var requests []Request
-//	rows, err := db.Query("SELECT * FROM request WHERE mission_id = $1", missionId)
+//	var requests []FlightPlan
+//	rows, err := db.Query("SELECT * FROM flightPlan WHERE mission_id = $1", missionId)
 //	if err != nil {
 //		return nil, err
 //	}
 //
 //	for rows.Next() {
-//		var request Request
-//		if err := rows.Scan(&request.Id, &request.Name, &request.UserId, &request.MissionId); err != nil {
+//		var flightPlan FlightPlan
+//		if err := rows.Scan(&flightPlan.Id, &flightPlan.Name, &flightPlan.UserId, &flightPlan.MissionId); err != nil {
 //			return requests, err
 //		}
-//		requests = append(requests, request)
+//		requests = append(requests, flightPlan)
 //	}
 //
 //	if err = rows.Err(); err != nil {
@@ -233,19 +215,19 @@ func (d DimService) handleUploadImage(c *gin.Context) {
 //	return requests, nil
 //}
 //
-//func handleGetRequestsNoObservation(c *gin.Context) ([]Request, error) {
-//	var requests []Request
-//	rows, err := db.Query("SELECT r.id, r.name, r.user_id, r.mission_id FROM request r LEFT JOIN public.observation o on r.id = o.request_id WHERE o.id IS NULL")
+//func handleGetRequestsNoObservation(c *gin.Context) ([]FlightPlan, error) {
+//	var requests []FlightPlan
+//	rows, err := db.Query("SELECT r.id, r.name, r.user_id, r.mission_id FROM flightPlan r LEFT JOIN public.observation o on r.id = o.request_id WHERE o.id IS NULL")
 //	if err != nil {
 //		return nil, err
 //	}
 //
 //	for rows.Next() {
-//		var request Request
-//		if err := rows.Scan(&request.Id, &request.Name, &request.UserId, &request.MissionId); err != nil {
+//		var flightPlan FlightPlan
+//		if err := rows.Scan(&flightPlan.Id, &flightPlan.Name, &flightPlan.UserId, &flightPlan.MissionId); err != nil {
 //			return requests, err
 //		}
-//		requests = append(requests, request)
+//		requests = append(requests, flightPlan)
 //	}
 //
 //	if err = rows.Err(); err != nil {
@@ -281,6 +263,6 @@ func extractMetadata(file *multipart.FileHeader) int {
 	if err != nil {
 		log.Fatalf("err 3: %v", err)
 	}
-	relatedMeasurementRequest := l["measurementRequest"]
-	return relatedMeasurementRequest
+	relatedObservationRequest := l["measurementRequest"]
+	return relatedObservationRequest
 }
