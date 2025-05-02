@@ -1,11 +1,12 @@
-package mission
+package flightPlan
 
 import "time"
 
-type Mission struct {
+type FlightPlan struct {
 	Id        int       `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	Name      string    `json:"name"`
-	Bucket    string    `json:"bucket"`
+	UserId    int       `json:"user_id"`
+	MissionId int       `json:"mission_id"`
 }

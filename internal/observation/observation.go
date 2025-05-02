@@ -1,7 +1,11 @@
 package observation
 
+import "time"
+
 type Observation struct {
-	Id        int `json:"id"`
-	RequestId int `json:"request_id"`
-	UserId    int `json:"user_id"`
+	Id                   int       `json:"id"`
+	CreatedAt            time.Time `json:"createdAt"`
+	UpdatedAt            time.Time `json:"updatedAt"`
+	ObjectReference      string    `json:"objectReference"`
+	ObservationRequestId int       `json:"observationRequestId"`
 }

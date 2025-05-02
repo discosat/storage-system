@@ -1,11 +1,11 @@
-package mission
+package observationMetadata
 
 import "time"
 
-type Mission struct {
+type ObservationMetadata struct {
 	Id        int       `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
-	Name      string    `json:"name"`
-	Bucket    string    `json:"bucket"`
+	Long      int       `json:"long"`
+	Lat       int       `json:"lat"`
 }

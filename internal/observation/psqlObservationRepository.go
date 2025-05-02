@@ -1,29 +1,40 @@
 package observation
 
-import "database/sql"
+import (
+	"database/sql"
+	"github.com/discosat/storage-system/internal/objectStore"
+	"mime/multipart"
+)
 
 type PsqlObservationRepository struct {
-	db *sql.DB
+	db          *sql.DB
+	objectStore objectStore.IDataStore
 }
 
-func NewPsqlObservationRepository(db *sql.DB) ObservationRepository {
-	return &PsqlObservationRepository{db: db}
+func NewPsqlObservationRepository(db *sql.DB, store objectStore.IDataStore) ObservationRepository {
+	return PsqlObservationRepository{db: db, objectStore: store}
 }
 
 func (p PsqlObservationRepository) GetById(id int) (Observation, error) {
-	return Observation{}, nil
+	//TODO implement me
+	panic("implement me")
 }
 
-func (p PsqlObservationRepository) GetByRequest(requestId int) (Observation, error) {
-	var observation Observation
-	row := p.db.QueryRow("SELECT * FROM observation WHERE request_id = $1", requestId)
-	err := row.Scan(&observation.Id, &observation.RequestId, &observation.UserId)
-	return observation, err
-}
+func (p PsqlObservationRepository) CreateObservation(file *multipart.FileHeader, bucket string, flightPlanName string, observationRequest int) (int, error) {
 
-func (p PsqlObservationRepository) CreateObservation(requestId int, userId int) (Observation, error) {
-	var observation Observation
-	err := p.db.QueryRow("INSERT INTO observation(request_id, user_id) VALUES ($1, $2) RETURNING id, request_id, user_id", requestId, userId).
-		Scan(&observation.Id, &observation.RequestId, &observation.UserId)
-	return observation, err
+	oFile, err := file.Open()
+	if err != nil {
+		return -1, err
+	}
+	objectReference, err := p.objectStore.SaveImage(file, oFile, bucket, flightPlanName)
+	if err != nil {
+		return -1, err
+	}
+
+	var measurementId int
+	// TODO UserId
+	err = p.db.QueryRow("INSERT INTO observation(observation_request_id, object_reference, user_id) VALUES ($1, $2, 1) RETURNING id", observationRequest, objectReference).
+		Scan(&measurementId)
+	return measurementId, err
+
 }
