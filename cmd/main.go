@@ -1,17 +1,15 @@
 package main
 
 import (
-	"database/sql"
 	"github.com/discosat/storage-system/cmd/dim"
-	"github.com/discosat/storage-system/internal/flightPlan"
-	"github.com/discosat/storage-system/internal/mission"
+	"database/sql"
 	"github.com/discosat/storage-system/internal/objectStore"
 	"github.com/discosat/storage-system/internal/observation"
-	"github.com/discosat/storage-system/internal/observationMetadata"
 	"github.com/discosat/storage-system/internal/observationRequest"
 	"fmt"
 	"github.com/discosat/storage-system/cmd/dam"
 	"github.com/joho/godotenv"
+	"github.com/jmoiron/sqlx"
 	"log"
 	"os"
 )
@@ -36,11 +34,8 @@ func main() {
 	go dim.Start(
 		dim.NewDimController(
 			dim.NewDimService(
-				flightPlan.NewPsqlFlightPlanRepository(db),
-				mission.NewPsqlMissionRepository(db),
 				observation.NewPsqlObservationRepository(db, store),
 				observationRequest.NewPsqlObservationRequestRepository(db),
-				observationMetadata.NewPsqlObservationMetadataRepository(db),
 			),
 		),
 	)
@@ -50,8 +45,8 @@ func main() {
 	select {}
 }
 
-func ConfigDatabase() *sql.DB {
-	db, err := sql.Open("pgx", fmt.Sprint("postgres://", os.Getenv("PGUSER"), ":", os.Getenv("PGPASSWORD"), "@", os.Getenv("PGHOST"), "/", os.Getenv("PGDATABASE")))
+func ConfigDatabase() *sqlx.DB {
+	db, err := sqlx.Open("pgx", fmt.Sprint("postgres://", os.Getenv("PGUSER"), ":", os.Getenv("PGPASSWORD"), "@", os.Getenv("PGHOST"), "/", os.Getenv("PGDATABASE")))
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v", err)
 	}

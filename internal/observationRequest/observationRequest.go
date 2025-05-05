@@ -7,5 +7,5 @@ type ObservationRequest struct {
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	OType     string    `json:"o_type"`
-	RId       int       `json:"r_id"`
+	FId       int       `json:"f_id"`
 }

@@ -1,4 +1,4 @@
-package observationMetadata
+package observation
 
 import "time"
 
@@ -8,4 +8,5 @@ type ObservationMetadata struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	Long      int       `json:"long"`
 	Lat       int       `json:"lat"`
+	//FileSize  int 		`json:"fileSize"`
 }
