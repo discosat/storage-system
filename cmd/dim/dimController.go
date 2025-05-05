@@ -2,6 +2,8 @@ package dim
 
 import (
 	"github.com/gin-gonic/gin"
+	"log"
+	"net/http"
 )
 
 type DimController struct {
@@ -14,6 +16,15 @@ func NewDimController(dimService DimServiceInterface) *DimController {
 
 func (d DimController) UploadImage(c *gin.Context) {
 	d.dimService.handleUploadImage(c)
+	return
+}
+
+func (d DimController) Test(c *gin.Context) {
+	or, err := d.dimService.test(c)
+	if err != nil {
+		log.Fatalf("Pis og papir")
+	}
+	c.JSON(http.StatusCreated, or)
 	return
 }
 

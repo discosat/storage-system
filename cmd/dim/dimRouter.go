@@ -22,28 +22,9 @@ func Start(dimController *DimController) {
 	//router.GET("/missions", GetMissions)
 	//router.GET("/requests", GetRequests)
 	//router.GET("/requestsNoObservation", GetRequestsNoObservation)
-	router.GET("/test", test)
+	router.GET("/test", dimController.Test)
 
 	router.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
-}
-
-func test(c *gin.Context) {
-	//ima, err := os.Open("cmd/dim/Oense.tif")
-	//if err != nil {
-	//	log.Fatalf("error1: %v", err)
-	//}
-	//
-	//config, err := tiff.DecodeConfig(ima)
-	//if err != nil {
-	//	log.Fatalf("error3: %v", err)
-	//}
-	//log.Println(config.Width)
-	//
-	////driver, err := gdal.GetDriverByName("GTiff")
-	////if err != nil {
-	////	log.Fatalf("error2: %v", err)
-	////}
-	////driver.Create("cmd/dim/Oense.tif", config.Width, config.Height)
 }
 
 func ErrorAbortMessage(c *gin.Context, statusCode int, err error) {

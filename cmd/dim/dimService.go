@@ -6,19 +6,17 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"net/http"
+	"strconv"
+
 	//"fmt"
-	. "github.com/discosat/storage-system/internal/flightPlan"
-	. "github.com/discosat/storage-system/internal/mission"
 	. "github.com/discosat/storage-system/internal/observation"
-	. "github.com/discosat/storage-system/internal/observationMetadata"
 	. "github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"io"
 	"log"
 	"mime/multipart"
-	"net/http"
-
 	//"os"
 	"os/exec"
 	//"path/filepath"
@@ -26,58 +24,66 @@ import (
 
 type DimServiceInterface interface {
 	handleUploadImage(c *gin.Context)
+	test(c *gin.Context) (ObservationRequestAggregate, error)
 }
 
 type DimService struct {
-	missionRepository             MissionRepository
-	flightPlanRepository          FlightPlanRepository
-	observationRequestRepository  ObservationRequestRepository
-	observationRepository         ObservationRepository
-	observationMetadataRepository ObservationMetadataRepository
+	observationRequestRepository ObservationRequestRepository
+	observationRepository        ObservationRepository
 }
 
-func NewDimService(fpRepo FlightPlanRepository, miRepo MissionRepository, oRepo ObservationRepository, orRepo ObservationRequestRepository, omRepo ObservationMetadataRepository) *DimService {
+func NewDimService(oRepo ObservationRepository, orRepo ObservationRequestRepository) *DimService {
 	return &DimService{
-		flightPlanRepository:          fpRepo,
-		missionRepository:             miRepo,
-		observationRequestRepository:  orRepo,
-		observationRepository:         oRepo,
-		observationMetadataRepository: omRepo,
+		observationRequestRepository: orRepo,
+		observationRepository:        oRepo,
 	}
+}
+
+func (d DimService) test(c *gin.Context) (ObservationRequestAggregate, error) {
+	var qId = c.Query("orId")
+	//orId, err := strconv.ParseInt(qId, 10, 0)
+	orId, err := strconv.Atoi(qId)
+	if err != nil {
+		log.Fatalf("Not an int")
+	}
+	log.Println(orId)
+	or, err := d.observationRequestRepository.GetObservationRequest(orId)
+	if err != nil {
+		log.Fatalf("Get observation request went wrong: %v", err)
+	}
+	log.Println(or)
+	return or, err
 }
 
 func (d DimService) handleUploadImage(c *gin.Context) {
 	//Binding POST data
-	flightPlanId := c.Request.FormValue("flightPlanId")
 	file, err := c.FormFile("file")
 	if err != nil {
 		ErrorAbortMessage(c, http.StatusBadRequest, err)
 		return
 	}
 
-	// Getting flightPlan and mission data
-	log.Printf("Querying for FlightPlan with id %v", flightPlanId)
-	flightPlan, err := d.flightPlanRepository.GetById(flightPlanId)
-	if err != nil {
-		ErrorAbortMessage(c, http.StatusNotFound, err)
-		return
-	}
-
-	log.Printf("Querying for Mission with id %v", flightPlan.MissionId)
-	mission, err := d.missionRepository.GetById(flightPlan.MissionId)
-	if err != nil {
-		ErrorAbortMessage(c, http.StatusInternalServerError, err)
-		return
-	}
+	//// Getting flightPlan and mission data
+	//log.Printf("Querying for FlightPlan with id %v", flightPlanId)
+	//flightPlan, err := d.flightPlanRepository.GetById(flightPlanId)
+	//if err != nil {
+	//	ErrorAbortMessage(c, http.StatusNotFound, err)
+	//	return
+	//}
+	//
+	//log.Printf("Querying for Mission with id %v", flightPlan.MissionId)
+	//mission, err := d.missionRepository.GetById(flightPlan.MissionId)
+	//if err != nil {
+	//	ErrorAbortMessage(c, http.StatusInternalServerError, err)
+	//	return
+	//}
 
 	// TODO Do error handling
 	// Gets related measurment flightPlan
 	ObservationRequestId := extractMetadata(file)
-	// Opening file
 
-	// Checks if observation flightPlan exists
 	log.Printf("Querying for ObservationRequest with id %v", ObservationRequestId)
-	ObservationRequestEntity, err := d.observationRequestRepository.GetById(ObservationRequestId)
+	observationRequestAggr, err := d.observationRequestRepository.GetObservationRequest(ObservationRequestId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			ErrorAbortMessage(c, http.StatusNotFound, err)
@@ -88,17 +94,17 @@ func (d DimService) handleUploadImage(c *gin.Context) {
 	}
 
 	// Saves image
-	observationId, err := d.observationRepository.CreateObservation(file, mission.Bucket, flightPlan.Name, ObservationRequestEntity.Id)
+	observationId, err := d.observationRepository.CreateObservation(file, observationRequestAggr.Mission.Bucket, observationRequestAggr.FlightPlan.Name, observationRequestAggr.ObservationRequest.Id)
 	if err != nil {
 		ErrorAbortMessage(c, http.StatusInternalServerError, err)
 		//log.Fatalf("handleImageUpload: %v", err)
 		return
 	}
-
-	_, err = d.observationMetadataRepository.CreateObservationMetadata(observationId, 10.4058633, 55.3821913)
-	if err != nil {
-		log.Fatalf("Geom: %v", err)
-	}
+	//
+	//_, err = d.observationMetadataRepository.CreateObservationMetadata(observationId, 10.4058633, 55.3821913)
+	//if err != nil {
+	//	log.Fatalf("Geom: %v", err)
+	//}
 
 	// TODO Genovervej lige sletning ved fejl
 	//err = tx.Commit()

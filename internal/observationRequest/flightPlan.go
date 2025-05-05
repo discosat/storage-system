@@ -1,4 +1,4 @@
-package flightPlan
+package observationRequest
 
 import "time"
 
