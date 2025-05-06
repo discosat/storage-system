@@ -48,6 +48,7 @@ func RequestHandler(c *gin.Context) {
 	}
 
 	//Calling db with SQL query string and arguments
+	PostgresService(sqlQuery, args)
 	fmt.Println("Logging optimized query in dam.go: ", sqlQuery)
 	fmt.Println("Logging optimized query arguments in dam.go: ", args)
 
