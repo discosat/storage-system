@@ -76,10 +76,10 @@ func StringToSQLTranslator(query interfaces.ImageRequest) (string, []interface{}
 		argIndex++
 	}
 
-	if query.CamType != nil {
-		fmt.Println("Logging cam type after stripping it from image request", *query.CamType)
-		conditions = append(conditions, fmt.Sprintf("cam_type = $%d", argIndex))
-		args = append(args, *query.CamType)
+	if query.Camera != nil {
+		fmt.Println("Logging cam type after stripping it from image request", *query.Camera)
+		conditions = append(conditions, fmt.Sprintf("camera = $%d", argIndex))
+		args = append(args, *query.Camera)
 		argIndex++
 	}
 
@@ -90,7 +90,7 @@ func StringToSQLTranslator(query interfaces.ImageRequest) (string, []interface{}
 		argIndex++
 	}
 
-	sqlQuery := "SELECT * FROM images"
+	sqlQuery := "SELECT * FROM observation_metadata"
 	if len(conditions) > 0 {
 		sqlQuery += " WHERE " + strings.Join(conditions, " AND ")
 	}
