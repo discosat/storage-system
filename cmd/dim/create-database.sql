@@ -111,7 +111,20 @@ CREATE TABLE observation_metadata
     created_at     TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at     TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     measurement_id INT                                    NOT NULL,
+    size           INT,
+    height         INT,
+    width           INT,
+    channels       INT,
+    timestamp       INT,
+    bits_pixels     INT,
+    image_offset    INT,
+    camera          VARCHAR(255),
     location       GEOGRAPHY(Point, 4326),
+    gnss_date       INT,
+    gnss_time       INT,
+    gnss_speed      FLOAT,
+    gnss_altitude   FLOAT,
+    gnss_cource     FLOAT,
     CONSTRAINT fk_measurement FOREIGN KEY (measurement_id) REFERENCES observation (id)
 );
 
