@@ -50,11 +50,11 @@ func main() {
 func ConfigDatabase() *sqlx.DB {
 	db, err := sqlx.Open("pgx", fmt.Sprint("postgres://", os.Getenv("PGUSER"), ":", os.Getenv("PGPASSWORD"), "@", os.Getenv("PGHOST"), "/", os.Getenv("PGDATABASE")))
 	if err != nil {
-		panic(fmt.Sprintf("Unable to connect to database: %v", err))
+		log.Fatalf("Unable to configrue database: %v", err)
 	}
 	err = db.Ping()
 	if err != nil {
-		panic(fmt.Sprintf("ConfigDatabase: Cannot connect to database; %v", err))
+		log.Fatalf("Connection to database could not be established: %v", err)
 	}
 	return db
 }
