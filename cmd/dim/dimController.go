@@ -91,11 +91,11 @@ func (d DimController) CreateFlightPlan(c *gin.Context) {
 		orList = append(orList, or)
 	}
 
-	slog.Info(fmt.Sprintf("CreateFlightPlan: Request is sucessfully bound, Saving"))
+	slog.Info(fmt.Sprintf("CreateFlightPlan: Request is sucessfully bound, persisting"))
 
 	fpId, err := d.dimService.handleCreateFlightPlan(flightPlan, orList)
 	if err != nil {
-		slog.Warn(fmt.Sprintf("Could not create flight plan: %v, wiht observation requests: %v \n Error: %v", flightPlan, orList, err))
+		slog.Error(fmt.Sprintf("Could not create flight plan: %v, wiht observation requests: %v, %v", flightPlan, orList, err))
 		errorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
