@@ -8,5 +8,5 @@ type ObservationMetadata struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	Long      int       `json:"long"`
 	Lat       int       `json:"lat"`
-	//FileSize  int 		`json:"fileSize"`
+	FileSize  int       `json:"fileSize"`
 }

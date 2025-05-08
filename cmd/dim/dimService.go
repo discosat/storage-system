@@ -3,10 +3,7 @@ package dim
 import (
 	//"archive/zip"
 	"bytes"
-	"database/sql"
 	"encoding/json"
-	"errors"
-	"net/http"
 	"strconv"
 
 	//"fmt"
@@ -23,7 +20,9 @@ import (
 )
 
 type DimServiceInterface interface {
-	handleUploadImage(c *gin.Context)
+	handleUploadImage(file *multipart.FileHeader) (int, error)
+	handleGetFlightPlan(id int) (FlightPlan, error)
+	handleCreateFlightPlan(missionId int, userId int, name string, requestList []ObservationRequest) (int, error)
 	test(c *gin.Context) (ObservationRequestAggregate, error)
 }
 
@@ -55,67 +54,32 @@ func (d DimService) test(c *gin.Context) (ObservationRequestAggregate, error) {
 	return or, err
 }
 
-func (d DimService) handleUploadImage(c *gin.Context) {
-	//Binding POST data
-	file, err := c.FormFile("file")
-	if err != nil {
-		ErrorAbortMessage(c, http.StatusBadRequest, err)
-		return
-	}
-
-	//// Getting flightPlan and mission data
-	//log.Printf("Querying for FlightPlan with id %v", flightPlanId)
-	//flightPlan, err := d.flightPlanRepository.GetById(flightPlanId)
-	//if err != nil {
-	//	ErrorAbortMessage(c, http.StatusNotFound, err)
-	//	return
-	//}
-	//
-	//log.Printf("Querying for Mission with id %v", flightPlan.MissionId)
-	//mission, err := d.missionRepository.GetById(flightPlan.MissionId)
-	//if err != nil {
-	//	ErrorAbortMessage(c, http.StatusInternalServerError, err)
-	//	return
-	//}
+func (d DimService) handleUploadImage(file *multipart.FileHeader) (int, error) {
 
 	// TODO Do error handling
-	// Gets related measurment flightPlan
 	ObservationRequestId := extractMetadata(file)
 
 	log.Printf("Querying for ObservationRequest with id %v", ObservationRequestId)
 	observationRequestAggr, err := d.observationRequestRepository.GetObservationRequest(ObservationRequestId)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			ErrorAbortMessage(c, http.StatusNotFound, err)
-			return
-		}
-		ErrorAbortMessage(c, http.StatusInternalServerError, err)
-		return
+		return -1, err
 	}
 
 	// Saves image
 	observationId, err := d.observationRepository.CreateObservation(file, observationRequestAggr.Mission.Bucket, observationRequestAggr.FlightPlan.Name, observationRequestAggr.ObservationRequest.Id)
 	if err != nil {
-		ErrorAbortMessage(c, http.StatusInternalServerError, err)
-		//log.Fatalf("handleImageUpload: %v", err)
-		return
+		return -1, err
 	}
-	//
-	//_, err = d.observationMetadataRepository.CreateObservationMetadata(observationId, 10.4058633, 55.3821913)
-	//if err != nil {
-	//	log.Fatalf("Geom: %v", err)
-	//}
 
-	// TODO Genovervej lige sletning ved fejl
-	//err = tx.Commit()
-	//if err != nil {
-	//	ObjectStore.ds.DeleteImage(key, mission.Bucket)
-	//	ErrorAbortMessage(c, http.StatusBadRequest, err)
-	//	return
-	//}
+	return observationId, nil
+}
 
-	c.JSON(http.StatusCreated, gin.H{"observation": observationId})
-	return
+func (d DimService) handleGetFlightPlan(id int) (FlightPlan, error) {
+	return d.observationRequestRepository.GetFlightPlantById(id)
+}
+
+func (d DimService) handleCreateFlightPlan(missionId int, userId int, name string, requestList []ObservationRequest) (int, error) {
+	return d.observationRequestRepository.CreateFlightPlan(missionId, userId, name, requestList)
 }
 
 //func handleUploadBatch(c *gin.Context) {
@@ -124,19 +88,19 @@ func (d DimService) handleUploadImage(c *gin.Context) {
 //
 //	exists, err := ObjectStore.ds.BucketExists(bucketName)
 //	if err != nil {
-//		ErrorAbortMessage(c, http.StatusInternalServerError, err)
+//		errorAbortMessage(c, http.StatusInternalServerError, err)
 //		return
 //	}
 //
 //	if !exists {
 //		e := fmt.Errorf("No bucket with name '%v' exists. Specify an already existing bucket", bucketName)
-//		ErrorAbortMessage(c, http.StatusBadRequest, e)
+//		errorAbortMessage(c, http.StatusBadRequest, e)
 //		return
 //	}
 //
 //	file, _, err := c.FlightPlan.FormFile("batch")
 //	if err != nil {
-//		ErrorAbortMessage(c, http.StatusInternalServerError, err)
+//		errorAbortMessage(c, http.StatusInternalServerError, err)
 //		return
 //	}
 //
@@ -145,13 +109,13 @@ func (d DimService) handleUploadImage(c *gin.Context) {
 //
 //	_, err = io.Copy(tmpFile, file)
 //	if err != nil {
-//		ErrorAbortMessage(c, http.StatusInternalServerError, err)
+//		errorAbortMessage(c, http.StatusInternalServerError, err)
 //		return
 //	}
 //
 //	archive, err := zip.OpenReader(tmpFile.Name())
 //	if err != nil {
-//		ErrorAbortMessage(c, http.StatusInternalServerError, err)
+//		errorAbortMessage(c, http.StatusInternalServerError, err)
 //		return
 //	}
 //

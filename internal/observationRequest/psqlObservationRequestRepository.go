@@ -1,7 +1,10 @@
 package observationRequest
 
 import (
+	"context"
+	"database/sql"
 	"github.com/jmoiron/sqlx"
+	"log"
 )
 
 type PsqlObservationRequestRepository struct {
@@ -42,6 +45,45 @@ func (p PsqlObservationRequestRepository) GetMissionById(id int) (Mission, error
 }
 
 func (p PsqlObservationRequestRepository) GetFlightPlantById(id int) (FlightPlan, error) {
+	var flightPlan FlightPlan
+	err := p.db.QueryRow("SELECT * FROM flight_plan WHERE id = $1", id).Scan(&flightPlan.Id, &flightPlan.CreatedAt, &flightPlan.UpdatedAt, &flightPlan.Name, &flightPlan.UserId, &flightPlan.MissionId)
+	if err != nil {
+		return flightPlan, err
+	}
+	return flightPlan, nil
+}
+
+func (p PsqlObservationRequestRepository) CreateFlightPlan(missionId int, userId int, name string, requestList []ObservationRequest) (int, error) {
+
+	tx, err := p.db.BeginTxx(context.Background(), &sql.TxOptions{})
+	//defer tx.Rollback()
+	if err != nil {
+		return -1, err
+	}
+
+	var fpId int
+	rows, err := tx.Query("INSERT INTO flight_plan (name, user_id, mission_id) VALUES ($1, $2, $3) RETURNING id", name, userId, missionId)
+	rows.Next()
+	rows.Scan(&fpId)
+	if err != nil {
+		return -1, err
+	}
+	rows.Close()
+	for _, request := range requestList {
+		r, qErr := tx.Query("INSERT INTO observation_request (flight_plan_id, type) VALUES ($1, $2)", fpId, request.OType)
+		if qErr != nil {
+			log.Fatalf("%v", qErr)
+		}
+		r.Scan()
+		r.Close()
+		//log.Println(r)
+	}
+	err = tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+	return fpId, nil
+
 	//TODO implement me
 	panic("implement me")
 }
@@ -50,4 +92,9 @@ func (p PsqlObservationRequestRepository) GetObservationRequestById(id int) (Obs
 	var observationRequest ObservationRequest
 	err := p.db.QueryRow("SELECT * FROM observation_request WHERE id = $1", id).Scan(&observationRequest.Id, &observationRequest.FId, &observationRequest.OType)
 	return observationRequest, err
+}
+
+func (p PsqlObservationRequestRepository) CreateObservationRequest(flightPLanId int, camera string) {
+	//TODO implement me
+	panic("implement me")
 }
