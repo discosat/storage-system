@@ -70,31 +70,18 @@ func (d DimController) GetFlightPlan(c *gin.Context) {
 }
 
 func (d DimController) CreateFlightPlan(c *gin.Context) {
-	mId, err := strconv.Atoi(c.PostForm("missionId"))
-	if err != nil {
-		slog.Warn(fmt.Sprintf("MissionId is empty: %v", err))
-		errorAbortMessage(c, http.StatusBadRequest, err)
-		return
-	}
 
-	uId, err := strconv.Atoi(c.PostForm("userId"))
+	var flightPlan observationRequest.FlightPlanCommand
+	err := json.Unmarshal([]byte(c.PostForm("flightPlan")), &flightPlan)
 	if err != nil {
-		slog.Warn(fmt.Sprintf("userId is empty or not a number: %v", err))
-		errorAbortMessage(c, http.StatusBadRequest, err)
-		return
-	}
-
-	name := c.PostForm("name")
-	if name == "" {
-		slog.Warn(fmt.Sprintf("name is empty: %v", err))
 		errorAbortMessage(c, http.StatusBadRequest, err)
 		return
 	}
 
 	rList := c.PostFormArray("requestList")
-	var orList []observationRequest.ObservationRequest
+	var orList []observationRequest.ObservationRequestCommand
 	for _, r := range rList {
-		var or observationRequest.ObservationRequest
+		var or observationRequest.ObservationRequestCommand
 		err = json.Unmarshal([]byte(r), &or)
 		if err != nil {
 			slog.Warn(fmt.Sprintf("Could not bind request to ObservationRequuest: %v", err))
@@ -106,9 +93,9 @@ func (d DimController) CreateFlightPlan(c *gin.Context) {
 
 	slog.Info(fmt.Sprintf("CreateFlightPlan: Request is sucessfully bound, Saving"))
 
-	fpId, err := d.dimService.handleCreateFlightPlan(mId, uId, name, orList)
+	fpId, err := d.dimService.handleCreateFlightPlan(flightPlan, orList)
 	if err != nil {
-		slog.Warn(fmt.Sprintf("Could not create flight plan with: mId=%v, uId=%v, name=%v, orList=%v \n Error: %v", mId, uId, name, orList, err))
+		slog.Warn(fmt.Sprintf("Could not create flight plan: %v, wiht observation requests: %v \n Error: %v", flightPlan, orList, err))
 		errorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -160,6 +147,6 @@ func (d DimController) Test(c *gin.Context) {
 //}
 
 func errorAbortMessage(c *gin.Context, statusCode int, err error) {
-	log.Println(err)
+	slog.Error(fmt.Sprint(err))
 	c.JSON(statusCode, gin.H{"error": fmt.Sprint(err)})
 }

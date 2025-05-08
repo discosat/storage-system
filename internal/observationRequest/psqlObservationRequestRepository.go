@@ -54,9 +54,9 @@ func (p PsqlObservationRequestRepository) GetFlightPlantById(id int) (FlightPlan
 	return flightPlan, nil
 }
 
-func (p PsqlObservationRequestRepository) CreateFlightPlan(missionId int, userId int, name string, requestList []ObservationRequest) (int, error) {
+func (p PsqlObservationRequestRepository) CreateFlightPlan(flightPlan FlightPlanCommand, requestList []ObservationRequestCommand) (int, error) {
 
-	slog.Info(fmt.Sprintf("Creating a flightplan: %v, for missionId: %v, with observation requests: %v", name, missionId, requestList))
+	slog.Info(fmt.Sprintf("Creating a flightplan: %v, for missionId: %v, with observation requests: %v", flightPlan.Name, flightPlan.MissionId, requestList))
 	tx, err := p.db.BeginTxx(context.Background(), &sql.TxOptions{})
 	defer tx.Rollback()
 	if err != nil {
@@ -65,7 +65,7 @@ func (p PsqlObservationRequestRepository) CreateFlightPlan(missionId int, userId
 	}
 
 	var fpId int
-	rows, err := tx.Query("INSERT INTO flight_plan (name, user_id, mission_id) VALUES ($1, $2, $3) RETURNING id", name, userId, missionId)
+	rows, err := tx.Query("INSERT INTO flight_plan (name, user_id, mission_id) VALUES ($1, $2, $3) RETURNING id", flightPlan.Name, flightPlan.UserId, flightPlan.MissionId)
 	if err != nil {
 		slog.Error(fmt.Sprintf("Could not inser flightplan: %v", err))
 		return -1, err
@@ -88,8 +88,6 @@ func (p PsqlObservationRequestRepository) CreateFlightPlan(missionId int, userId
 		_, qErr := tx.Exec("INSERT INTO observation_request (flight_plan_id, type) VALUES ($1, $2)", fpId, request.OType)
 		if qErr != nil {
 			slog.Error(fmt.Sprintf("Formatting eror of observation request: %v. \n Error: %v", request, err))
-			// TODO Skal kunne håndtere denne som en bad request, og ikke en internalServerError. Check de andre error returns også
-			// Er måske alerede håndteret i controlleren dog, da det er der vi binder objekter
 			return -1, err
 		}
 	}
