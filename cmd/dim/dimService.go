@@ -22,7 +22,7 @@ import (
 type DimServiceInterface interface {
 	handleUploadImage(file *multipart.FileHeader) (int, error)
 	handleGetFlightPlan(id int) (FlightPlan, error)
-	handleCreateFlightPlan(missionId int, userId int, name string, requestList []ObservationRequest) (int, error)
+	handleCreateFlightPlan(flightPlan FlightPlanCommand, requestList []ObservationRequestCommand) (int, error)
 	test(c *gin.Context) (ObservationRequestAggregate, error)
 }
 
@@ -78,8 +78,8 @@ func (d DimService) handleGetFlightPlan(id int) (FlightPlan, error) {
 	return d.observationRequestRepository.GetFlightPlantById(id)
 }
 
-func (d DimService) handleCreateFlightPlan(missionId int, userId int, name string, requestList []ObservationRequest) (int, error) {
-	return d.observationRequestRepository.CreateFlightPlan(missionId, userId, name, requestList)
+func (d DimService) handleCreateFlightPlan(flightPlan FlightPlanCommand, requestList []ObservationRequestCommand) (int, error) {
+	return d.observationRequestRepository.CreateFlightPlan(flightPlan, requestList)
 }
 
 //func handleUploadBatch(c *gin.Context) {
