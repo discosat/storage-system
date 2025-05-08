@@ -67,7 +67,7 @@ func (p PsqlObservationRequestRepository) CreateFlightPlan(flightPlan FlightPlan
 	var fpId int
 	rows, err := tx.Query("INSERT INTO flight_plan (name, user_id, mission_id) VALUES ($1, $2, $3) RETURNING id", flightPlan.Name, flightPlan.UserId, flightPlan.MissionId)
 	if err != nil {
-		slog.Error(fmt.Sprintf("Could not inser flightplan: %v", err))
+		slog.Error(fmt.Sprintf("Could not insert flightplan: %v", err))
 		return -1, err
 	}
 
@@ -96,6 +96,7 @@ func (p PsqlObservationRequestRepository) CreateFlightPlan(flightPlan FlightPlan
 		slog.Error(fmt.Sprintf("Could not commit transaction: %v", err))
 		return -1, err
 	}
+	slog.Info(fmt.Sprintf("Flight plan: %v, with id %v, created", flightPlan.Name, fpId))
 	return fpId, nil
 }
 
