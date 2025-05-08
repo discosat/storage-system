@@ -11,11 +11,13 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/jmoiron/sqlx"
 	"log"
+	"log/slog"
 	"os"
 )
 
 func main() {
-	fmt.Println("starting DIM-DAM system backend")
+	fmt.SetFlags(log.LstdFlags | log.Lshortfile)
+	slog.Info("starting DIM-DAM system backend")
 
 	store := objectStore.NewMinioStore()
 	db := ConfigDatabase()
@@ -40,7 +42,7 @@ func main() {
 		),
 	)
 
-	fmt.Println("DIM-DAM up and running")
+	slog.Info("DIM-DAM up and running")
 
 	select {}
 }
@@ -48,11 +50,11 @@ func main() {
 func ConfigDatabase() *sqlx.DB {
 	db, err := sqlx.Open("pgx", fmt.Sprint("postgres://", os.Getenv("PGUSER"), ":", os.Getenv("PGPASSWORD"), "@", os.Getenv("PGHOST"), "/", os.Getenv("PGDATABASE")))
 	if err != nil {
-		log.Fatalf("Unable to connect to database: %v", err)
+		panic(fmt.Sprintf("Unable to connect to database: %v", err))
 	}
 	err = db.Ping()
 	if err != nil {
-		log.Fatalf("ConfigDatabase: Cannot connect to database; %v", err)
+		panic(fmt.Sprintf("ConfigDatabase: Cannot connect to database; %v", err))
 	}
 	return db
 }

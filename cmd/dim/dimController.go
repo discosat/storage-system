@@ -8,6 +8,7 @@ import (
 	"github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/gin-gonic/gin"
 	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 )
@@ -21,7 +22,6 @@ func NewDimController(dimService DimServiceInterface) *DimController {
 }
 
 func (d DimController) UploadImage(c *gin.Context) {
-
 	//Binding POST data
 	file, err := c.FormFile("file")
 	if err != nil {
@@ -70,21 +70,45 @@ func (d DimController) GetFlightPlan(c *gin.Context) {
 }
 
 func (d DimController) CreateFlightPlan(c *gin.Context) {
-	mId, _ := strconv.Atoi(c.PostForm("missionId"))
-	uId, _ := strconv.Atoi(c.PostForm("userId"))
+	mId, err := strconv.Atoi(c.PostForm("missionId"))
+	if err != nil {
+		slog.Warn(fmt.Sprintf("MissionId is empty: %v", err))
+		errorAbortMessage(c, http.StatusBadRequest, err)
+		return
+	}
+
+	uId, err := strconv.Atoi(c.PostForm("userId"))
+	if err != nil {
+		slog.Warn(fmt.Sprintf("userId is empty or not a number: %v", err))
+		errorAbortMessage(c, http.StatusBadRequest, err)
+		return
+	}
+
 	name := c.PostForm("name")
+	if name == "" {
+		slog.Warn(fmt.Sprintf("name is empty: %v", err))
+		errorAbortMessage(c, http.StatusBadRequest, err)
+		return
+	}
+
 	rList := c.PostFormArray("requestList")
 	var orList []observationRequest.ObservationRequest
 	for _, r := range rList {
 		var or observationRequest.ObservationRequest
-		json.Unmarshal([]byte(r), &or)
+		err = json.Unmarshal([]byte(r), &or)
+		if err != nil {
+			slog.Warn(fmt.Sprintf("Could not bind request to ObservationRequuest: %v", err))
+			errorAbortMessage(c, http.StatusBadRequest, err)
+			return
+		}
 		orList = append(orList, or)
 	}
 
-	log.Printf("mId: %v, uId: %v, name: %v", mId, uId, name)
-	log.Printf("List: %v", rList)
+	slog.Info(fmt.Sprintf("CreateFlightPlan: Request is sucessfully bound, Saving"))
+
 	fpId, err := d.dimService.handleCreateFlightPlan(mId, uId, name, orList)
 	if err != nil {
+		slog.Warn(fmt.Sprintf("Could not create flight plan with: mId=%v, uId=%v, name=%v, orList=%v \n Error: %v", mId, uId, name, orList, err))
 		errorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}

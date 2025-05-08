@@ -3,8 +3,9 @@ package observationRequest
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"github.com/jmoiron/sqlx"
-	"log"
+	"log/slog"
 )
 
 type PsqlObservationRequestRepository struct {
@@ -55,37 +56,49 @@ func (p PsqlObservationRequestRepository) GetFlightPlantById(id int) (FlightPlan
 
 func (p PsqlObservationRequestRepository) CreateFlightPlan(missionId int, userId int, name string, requestList []ObservationRequest) (int, error) {
 
+	slog.Info(fmt.Sprintf("Creating a flightplan: %v, for missionId: %v, with observation requests: %v", name, missionId, requestList))
 	tx, err := p.db.BeginTxx(context.Background(), &sql.TxOptions{})
-	//defer tx.Rollback()
+	defer tx.Rollback()
 	if err != nil {
+		slog.Error(fmt.Sprintf("Could not create transaction: %v", err))
 		return -1, err
 	}
 
 	var fpId int
 	rows, err := tx.Query("INSERT INTO flight_plan (name, user_id, mission_id) VALUES ($1, $2, $3) RETURNING id", name, userId, missionId)
-	rows.Next()
-	rows.Scan(&fpId)
 	if err != nil {
+		slog.Error(fmt.Sprintf("Could not inser flightplan: %v", err))
 		return -1, err
 	}
-	rows.Close()
+
+	rows.Next()
+	err = rows.Scan(&fpId)
+	if err != nil {
+		slog.Error(fmt.Sprintf("Could not bind flightPlant id: %v", err))
+		return -1, err
+	}
+
+	err = rows.Close()
+	if err != nil {
+		slog.Error(fmt.Sprintf("Flight plan row could not be closed: %v", err))
+		return -1, err
+	}
+
 	for _, request := range requestList {
-		r, qErr := tx.Query("INSERT INTO observation_request (flight_plan_id, type) VALUES ($1, $2)", fpId, request.OType)
+		_, qErr := tx.Exec("INSERT INTO observation_request (flight_plan_id, type) VALUES ($1, $2)", fpId, request.OType)
 		if qErr != nil {
-			log.Fatalf("%v", qErr)
+			slog.Error(fmt.Sprintf("Formatting eror of observation request: %v. \n Error: %v", request, err))
+			// TODO Skal kunne håndtere denne som en bad request, og ikke en internalServerError. Check de andre error returns også
+			// Er måske alerede håndteret i controlleren dog, da det er der vi binder objekter
+			return -1, err
 		}
-		r.Scan()
-		r.Close()
-		//log.Println(r)
 	}
 	err = tx.Commit()
 	if err != nil {
-		return 0, err
+		slog.Error(fmt.Sprintf("Could not commit transaction: %v", err))
+		return -1, err
 	}
 	return fpId, nil
-
-	//TODO implement me
-	panic("implement me")
 }
 
 func (p PsqlObservationRequestRepository) GetObservationRequestById(id int) (ObservationRequest, error) {
