@@ -1,9 +1,12 @@
 package dim
 
 import (
-	//"archive/zip"
+	"archive/zip"
 	"bytes"
+	. "github.com/discosat/storage-system/internal/Commands"
+
 	"encoding/json"
+	"path/filepath"
 	"strconv"
 
 	//"fmt"
@@ -13,14 +16,14 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"io"
 	"log"
-	"mime/multipart"
 	//"os"
 	"os/exec"
 	//"path/filepath"
 )
 
 type DimServiceInterface interface {
-	handleUploadImage(file *multipart.FileHeader) (int, error)
+	handleUploadImage(file *io.ReadCloser, fileName string, fileSize int64) (int, error)
+	handleUploadBatch(archive *zip.ReadCloser) error
 	handleGetFlightPlan(id int) (FlightPlan, error)
 	handleCreateFlightPlan(flightPlan FlightPlanCommand, requestList []ObservationRequestCommand) (int, error)
 	test(c *gin.Context) (ObservationRequestAggregate, error)
@@ -54,10 +57,13 @@ func (d DimService) test(c *gin.Context) (ObservationRequestAggregate, error) {
 	return or, err
 }
 
-func (d DimService) handleUploadImage(file *multipart.FileHeader) (int, error) {
+func (d DimService) handleUploadImage(file *io.ReadCloser, fileName string, fileSize int64) (int, error) {
 
 	// TODO Do error handling
-	ObservationRequestId := extractMetadata(file)
+
+	// Need to open again after extracting metadata
+	raw, _ := io.ReadAll(*file)
+	ObservationRequestId := extractMetadata(raw)
 
 	log.Printf("Querying for ObservationRequest with id %v", ObservationRequestId)
 	observationRequestAggr, err := d.observationRequestRepository.GetObservationRequest(ObservationRequestId)
@@ -65,8 +71,10 @@ func (d DimService) handleUploadImage(file *multipart.FileHeader) (int, error) {
 		return -1, err
 	}
 
+	fileReader := bytes.NewReader(raw)
+	observationCommand := ObservationCommand{File: fileReader, FileName: fileName, FileSize: fileSize, Bucket: observationRequestAggr.Mission.Bucket, FlightPlanName: observationRequestAggr.FlightPlan.Name, ObservationRequestId: observationRequestAggr.ObservationRequest.Id}
 	// Saves image
-	observationId, err := d.observationRepository.CreateObservation(file, observationRequestAggr.Mission.Bucket, observationRequestAggr.FlightPlan.Name, observationRequestAggr.ObservationRequest.Id)
+	observationId, err := d.observationRepository.CreateObservation(observationCommand)
 	if err != nil {
 		return -1, err
 	}
@@ -82,61 +90,33 @@ func (d DimService) handleCreateFlightPlan(flightPlan FlightPlanCommand, request
 	return d.observationRequestRepository.CreateFlightPlan(flightPlan, requestList)
 }
 
-//func handleUploadBatch(c *gin.Context) {
-//
-//	bucketName := c.FlightPlan.FormValue("bucketName")
-//
-//	exists, err := ObjectStore.ds.BucketExists(bucketName)
-//	if err != nil {
-//		errorAbortMessage(c, http.StatusInternalServerError, err)
-//		return
-//	}
-//
-//	if !exists {
-//		e := fmt.Errorf("No bucket with name '%v' exists. Specify an already existing bucket", bucketName)
-//		errorAbortMessage(c, http.StatusBadRequest, e)
-//		return
-//	}
-//
-//	file, _, err := c.FlightPlan.FormFile("batch")
-//	if err != nil {
-//		errorAbortMessage(c, http.StatusInternalServerError, err)
-//		return
-//	}
-//
-//	tmpFile, _ := os.CreateTemp("", "temp*.zip")
-//	defer os.Remove(tmpFile.Name())
-//
-//	_, err = io.Copy(tmpFile, file)
-//	if err != nil {
-//		errorAbortMessage(c, http.StatusInternalServerError, err)
-//		return
-//	}
-//
-//	archive, err := zip.OpenReader(tmpFile.Name())
-//	if err != nil {
-//		errorAbortMessage(c, http.StatusInternalServerError, err)
-//		return
-//	}
-//
-//	for _, iFile := range archive.File {
-//		if iFile.FileInfo().IsDir() {
-//			continue
-//		}
-//		oFile, _ := iFile.Open()
-//		_, err := ObjectStore.ds.SaveFile(iFile, oFile, bucketName)
-//		if err != nil {
-//			log.Printf("UploadBatch: Cannot upload thie file %v, error is %v", filepath.Base(iFile.Name), err)
-//			break
-//		}
-//		//var measurementId string
-//		//err = tx.QueryRow("INSERT INTO measurements (ref) VALUES ($1) RETURNING id", ref).Scan(&measurementId)
-//		//log.Printf("MEASUREMENT ID: %v", measurementId)
-//	}
-//
-//	log.Println("done")
-//
-//}
+func (d DimService) handleUploadBatch(archive *zip.ReadCloser) error {
+	for _, iFile := range archive.File {
+		if iFile.FileInfo().IsDir() {
+			continue
+		}
+		oFile, err := iFile.Open()
+		if err != nil {
+			return err
+		}
+		//oFile, err = iFile.Open()
+		_, err = d.handleUploadImage(&oFile, iFile.FileInfo().Name(), iFile.FileInfo().Size())
+		if err != nil {
+			log.Printf("UploadBatch: Cannot upload thie file %v, error is %v", filepath.Base(iFile.Name), err)
+			break
+		}
+		err = oFile.Close()
+		if err != nil {
+			return err
+		}
+		//log.Println(result)
+	}
+
+	log.Println("done")
+
+	return nil
+}
+
 //
 //func handleGetMissions(c *gin.Context) ([]Mission, error) {
 //	var missions []Mission
@@ -208,15 +188,9 @@ func (d DimService) handleCreateFlightPlan(flightPlan FlightPlanCommand, request
 //
 //}
 
-func extractMetadata(file *multipart.FileHeader) int {
-	oFile, err := file.Open()
-	if err != nil {
-		log.Fatalf("extractMetadata: %v", err)
-	}
-	defer oFile.Close()
+func extractMetadata(raw []byte) int {
 
 	// call exifTool
-	raw, err := io.ReadAll(oFile)
 	cmd := exec.Command("exiftool", "-json", "-")
 	cmd.Stdin = bytes.NewReader(raw)
 	result, err := cmd.Output()

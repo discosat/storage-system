@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/discosat/storage-system/internal/Commands"
 	"github.com/jmoiron/sqlx"
 	"log/slog"
 )
@@ -54,7 +55,7 @@ func (p PsqlObservationRequestRepository) GetFlightPlantById(id int) (FlightPlan
 	return flightPlan, nil
 }
 
-func (p PsqlObservationRequestRepository) CreateFlightPlan(flightPlan FlightPlanCommand, requestList []ObservationRequestCommand) (int, error) {
+func (p PsqlObservationRequestRepository) CreateFlightPlan(flightPlan Commands.FlightPlanCommand, requestList []Commands.ObservationRequestCommand) (int, error) {
 
 	slog.Info(fmt.Sprintf("Creating a flightplan: %v, for missionId: %v, with observation requests: %v", flightPlan.Name, flightPlan.MissionId, requestList))
 	tx, err := p.db.BeginTxx(context.Background(), &sql.TxOptions{})
