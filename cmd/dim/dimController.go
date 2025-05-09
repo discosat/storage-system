@@ -1,15 +1,18 @@
 package dim
 
 import (
+	"archive/zip"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/discosat/storage-system/internal/observationRequest"
+	"github.com/discosat/storage-system/internal/Commands"
 	"github.com/gin-gonic/gin"
+	"io"
 	"log"
 	"log/slog"
 	"net/http"
+	"os"
 	"strconv"
 )
 
@@ -28,8 +31,20 @@ func (d DimController) UploadImage(c *gin.Context) {
 		errorAbortMessage(c, http.StatusBadRequest, err)
 		return
 	}
+	oFile, err := file.Open()
+	//defer oFile.Close()
+	if err != nil {
+		errorAbortMessage(c, http.StatusInternalServerError, err)
+		return
+	}
 
-	observationId, err := d.dimService.handleUploadImage(file)
+	readCloser, ok := oFile.(io.ReadCloser)
+	if !ok {
+		// Handle the error, file does not implement io.ReadCloser
+		return
+	}
+
+	observationId, err := d.dimService.handleUploadImage(&readCloser, file.Filename, file.Size)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			errorAbortMessage(c, http.StatusNotFound, err)
@@ -71,7 +86,7 @@ func (d DimController) GetFlightPlan(c *gin.Context) {
 
 func (d DimController) CreateFlightPlan(c *gin.Context) {
 
-	var flightPlan observationRequest.FlightPlanCommand
+	var flightPlan Commands.FlightPlanCommand
 	err := json.Unmarshal([]byte(c.PostForm("flightPlan")), &flightPlan)
 	if err != nil {
 		errorAbortMessage(c, http.StatusBadRequest, err)
@@ -79,9 +94,9 @@ func (d DimController) CreateFlightPlan(c *gin.Context) {
 	}
 
 	rList := c.PostFormArray("requestList")
-	var orList []observationRequest.ObservationRequestCommand
+	var orList []Commands.ObservationRequestCommand
 	for _, r := range rList {
-		var or observationRequest.ObservationRequestCommand
+		var or Commands.ObservationRequestCommand
 		err = json.Unmarshal([]byte(r), &or)
 		if err != nil {
 			slog.Warn(fmt.Sprintf("Could not bind request to ObservationRequuest: %v", err))
@@ -111,11 +126,34 @@ func (d DimController) Test(c *gin.Context) {
 	return
 }
 
-//func UploadBatch(c *gin.Context) {
-//	//handleUploadBatch(c)
-//	return
-//}
-//
+func (d DimController) UploadBatch(c *gin.Context) {
+	file, err := c.FormFile("batch")
+	oFile, err := file.Open()
+
+	tmpFile, _ := os.CreateTemp("", "temp*.zip")
+	defer os.Remove(tmpFile.Name())
+	_, err = io.Copy(tmpFile, oFile)
+	if err != nil {
+		errorAbortMessage(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	reader, err := zip.OpenReader(tmpFile.Name())
+	if err != nil {
+		errorAbortMessage(c, http.StatusBadRequest, err)
+		return
+	}
+
+	err = d.dimService.handleUploadBatch(reader)
+	if err != nil {
+		errorAbortMessage(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.JSON(http.StatusCreated, nil)
+	return
+}
+
 //func GetMissions(c *gin.Context) {
 //	missions, err := handleGetMissions(c)
 //	if err != nil {

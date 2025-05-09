@@ -1,10 +1,10 @@
 package observation
 
 import (
+	"github.com/discosat/storage-system/internal/Commands"
 	"github.com/discosat/storage-system/internal/objectStore"
 	"github.com/jmoiron/sqlx"
 	"log"
-	"mime/multipart"
 )
 
 type PsqlObservationRepository struct {
@@ -21,23 +21,19 @@ func (p PsqlObservationRepository) GetObservation(id int) (Observation, error) {
 	panic("implement me")
 }
 
-func (p PsqlObservationRepository) CreateObservation(file *multipart.FileHeader, bucket string, flightPlanName string, observationRequest int) (int, error) {
+func (p PsqlObservationRepository) CreateObservation(observationCommand Commands.ObservationCommand) (int, error) {
 
 	//tx := p.db.BeginTx()
 
-	oFile, err := file.Open()
-	if err != nil {
-		return -1, err
-	}
 	// TODO På et rollback ad SQL tx, skal billedet slettes
-	objectReference, err := p.objectStore.SaveImage(file, oFile, bucket, flightPlanName)
+	objectReference, err := p.objectStore.SaveImage(observationCommand)
 	if err != nil {
 		return -1, err
 	}
 
 	var observationId int
 	// TODO UserId
-	err = p.db.QueryRow("INSERT INTO observation(observation_request_id, object_reference, user_id) VALUES ($1, $2, 1) RETURNING id", observationRequest, objectReference).
+	err = p.db.QueryRow("INSERT INTO observation(observation_request_id, object_reference, user_id) VALUES ($1, $2, 1) RETURNING id", observationCommand.ObservationRequestId, objectReference).
 		Scan(&observationId)
 
 	meta, err := p.CreateObservationMetadata(observationId, 10.4058633, 55.3821913)

@@ -18,7 +18,7 @@ func Start(dimController *DimController) {
 	router.POST("/file", dimController.UploadImage)
 	router.GET("/flightPlan", dimController.GetFlightPlan)
 	router.POST("/flightPlan", dimController.CreateFlightPlan)
-	//router.POST("/batch", UploadBatch)
+	router.POST("/batch", dimController.UploadBatch)
 	//router.GET("/missions", GetMissions)
 	//router.GET("/requests", GetRequests)
 	//router.GET("/requestsNoObservation", GetRequestsNoObservation)

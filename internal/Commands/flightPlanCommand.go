@@ -1,4 +1,4 @@
-package observationRequest
+package Commands
 
 type FlightPlanCommand struct {
 	Name      string `json:"name"`
