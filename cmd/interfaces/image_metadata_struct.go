@@ -1,0 +1,22 @@
+package interfaces
+
+type ImageMetadata struct {
+	ID            int
+	CreatedAt     string
+	UpdatedAt     string
+	MeasurementID int
+	Size          int
+	Height        int
+	Width         int
+	Channels      int
+	Timestamp     int64
+	BitsPixels    int
+	ImageOffset   int
+	Camera        string
+	Location      string
+	GnssDate      int64
+	GnssTime      int64
+	GnssSpeed     float64
+	GnssAltitude  float64
+	GnssCourse    float64
+}

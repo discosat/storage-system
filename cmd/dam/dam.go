@@ -48,9 +48,13 @@ func RequestHandler(c *gin.Context) {
 	}
 
 	//Calling db with SQL query string and arguments
-	PostgresService(sqlQuery, args)
+	imageMetadata, PostgresErr := PostgresService(sqlQuery, args)
+	if PostgresErr != nil {
+		log.Fatal("Failed to call PostgreSQL DB with SQL query", PostgresErr)
+	}
 	fmt.Println("Logging optimized query in dam.go: ", sqlQuery)
 	fmt.Println("Logging optimized query arguments in dam.go: ", args)
+	fmt.Println("Logging output of postgres service in dam.go: ", imageMetadata)
 
 	//bundling images together
 	imageFound := ImageBundler()

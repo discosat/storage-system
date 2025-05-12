@@ -3,6 +3,7 @@ package dam
 import (
 	"database/sql"
 	"fmt"
+	"github.com/discosat/storage-system/cmd/interfaces"
 	_ "github.com/lib/pq"
 	"log"
 	"os"
@@ -29,9 +30,7 @@ func InitDB() {
 	}
 }
 
-func PostgresService(query string, args []interface{}) {
-	fmt.Println("Logging full Query in db_caller.go: ", query)
-	fmt.Println("Logging Arguments in db_caller.go: ", args)
+func PostgresService(query string, args []interface{}) ([]interfaces.ImageMetadata, error) {
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		log.Fatal("An ERROR occured trying to create a query to the PostgreSQL database: ", err)
@@ -39,52 +38,28 @@ func PostgresService(query string, args []interface{}) {
 
 	defer rows.Close()
 
-	fmt.Println("Logging if we reach this")
+	var results []interfaces.ImageMetadata
 
 	for rows.Next() {
-		fmt.Println("Logging if we reach this2")
-		var (
-			id            int
-			created_at    string
-			updated_at    string
-			measurementID int
-			size          int
-			height        int
-			width         int
-			channels      int
-			timestamp     int64
-			bitsPixels    int
-			imageOffset   int
-			camera        string
-			location      string // We'll get to this in a moment
-			gnssDate      int64
-			gnssTime      int64
-			gnssSpeed     float64
-			gnssAltitude  float64
-			gnssCourse    float64
-		)
-
-		fmt.Println("Logging to test if we get any data out?: ", size)
+		var row interfaces.ImageMetadata
 
 		err := rows.Scan(
-			&id, &created_at, &updated_at, &measurementID, &size, &height, &width, &channels,
-			&timestamp, &bitsPixels, &imageOffset, &camera, &location,
-			&gnssDate, &gnssTime, &gnssSpeed, &gnssAltitude, &gnssCourse,
+			&row.ID, &row.CreatedAt, &row.UpdatedAt, &row.MeasurementID, &row.Size, &row.Height, &row.Width, &row.Channels,
+			&row.Timestamp, &row.BitsPixels, &row.ImageOffset, &row.Camera, &row.Location,
+			&row.GnssDate, &row.GnssTime, &row.GnssSpeed, &row.GnssAltitude, &row.GnssCourse,
 		)
 		if err != nil {
 			log.Println("Error scanning row:", err)
 			continue
 		}
-
-		fmt.Printf(
-			"Row: ID=%d, Cam=%s, Loc=%s, Time=%d, Speed=%.2f, Alt=%.2f, Course=%.2f\n",
-			id, camera, location, timestamp, gnssSpeed, gnssAltitude, gnssCourse,
-		)
+		results = append(results, row)
 	}
 
 	if err := rows.Err(); err != nil {
 		log.Println("Error iterating over rows:", err)
 	}
+
+	return results, nil
 }
 
 func MinioService() {
