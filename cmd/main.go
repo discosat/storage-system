@@ -18,6 +18,7 @@ func main() {
 	// Initialize the database connection
 	dam.InitDB()
 
+	// Initialize DIM and DAM services
 	go dam.Start()
 	//go dim.Start()
 

@@ -62,7 +62,7 @@ func PostgresService(query string, args []interface{}) ([]interfaces.ImageMetada
 	return results, nil
 }
 
-func MinioService() {
-	// Placeholder for Minio service
-	fmt.Println("Requesting images from Minio using optimized query: ")
+func MinIOService(imageIDs []int) {
+	// Placeholder for MinIO service
+	fmt.Println("Requesting images from MinIO using Image ID: ", imageIDs)
 }
