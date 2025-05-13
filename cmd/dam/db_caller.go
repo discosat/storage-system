@@ -44,7 +44,7 @@ func PostgresService(query string, args []interface{}) ([]interfaces.ImageMetada
 		var row interfaces.ImageMetadata
 
 		err := rows.Scan(
-			&row.ID, &row.CreatedAt, &row.UpdatedAt, &row.MeasurementID, &row.Size, &row.Height, &row.Width, &row.Channels,
+			&row.ID, &row.CreatedAt, &row.UpdatedAt, &row.ObservationID, &row.Size, &row.Height, &row.Width, &row.Channels,
 			&row.Timestamp, &row.BitsPixels, &row.ImageOffset, &row.Camera, &row.Location,
 			&row.GnssDate, &row.GnssTime, &row.GnssSpeed, &row.GnssAltitude, &row.GnssCourse,
 		)
@@ -62,7 +62,46 @@ func PostgresService(query string, args []interface{}) ([]interfaces.ImageMetada
 	return results, nil
 }
 
-func MinIOService(imageIDs []int) {
-	// Placeholder for MinIO service
-	fmt.Println("Requesting images from MinIO using Image ID: ", imageIDs)
+func MinIOService(imageInfo []interfaces.ImageMinIOData) {
+
+	for _, image := range imageInfo {
+		fmt.Println("Image ID:", image.ID)
+		fmt.Println("Bucket Name:", image.BucketName)
+	}
+	/*
+		endpoint := os.Getenv("MINIO_ENDPOINT")
+		accessKeyID := os.Getenv("MINIO_ACCESS_KEY_ID")
+		secretAccessKey := os.Getenv("MINIO_SECRET_ACCESS_KEY")
+		bucketRegion := os.Getenv("MINIO_BUCKET_REGION")
+
+		minioClient, err := minio.New(endpoint, &minio.Options{
+			Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+			Secure: false,
+		})
+		if err != nil {
+			log.Fatal("Failed to create MinIO client:", err)
+		}
+
+		ctx := context.Background()
+
+		for _, imageID := range imageIDs {
+			objectName := fmt.Sprintf("image_%d.jpg", imageID)
+			object, err := minioClient.GetObject(ctx, bucketRegion, objectName, minio.GetObjectOptions{})
+			if err != nil {
+				log.Println("Failed to get object from MinIO:", err)
+				continue
+			}
+
+			buf := new(bytes.Buffer)
+			_, bufErr := buf.ReadFrom(object)
+			if bufErr != nil {
+				log.Printf("Failed to read object %s: %v", objectName, err)
+				continue
+			}
+
+			fmt.Printf("Successfully retrieved image: ", objectName)
+		}
+
+		// Placeholder for MinIO service
+		fmt.Println("Requesting images from MinIO using Image ID: ", imageIDs)*/
 }

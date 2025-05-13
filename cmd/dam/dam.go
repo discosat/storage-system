@@ -56,13 +56,17 @@ func RequestHandler(c *gin.Context) {
 	fmt.Println("Logging optimized query arguments in dam.go: ", args)
 	fmt.Println("Logging output of postgres service in dam.go: ", imageMetadata)
 
-	var imageIDs []int
+	var imageMinIOData []interfaces.ImageMinIOData
+	bucketName := "images"
 	for _, metadata := range imageMetadata {
-		imageIDs = append(imageIDs, metadata.ID)
+		imageMinIOData = append(imageMinIOData, interfaces.ImageMinIOData{
+			ID:         metadata.ID,
+			BucketName: bucketName,
+		})
 	}
 
 	//Calling Minio service with image IDs
-	MinIOService(imageIDs)
+	MinIOService(imageMinIOData)
 
 	//bundling images together
 	imageFound := ImageBundler()

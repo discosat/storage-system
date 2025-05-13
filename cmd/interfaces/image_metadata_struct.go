@@ -4,7 +4,7 @@ type ImageMetadata struct {
 	ID            int
 	CreatedAt     string
 	UpdatedAt     string
-	MeasurementID int
+	ObservationID int
 	Size          int
 	Height        int
 	Width         int
@@ -19,4 +19,9 @@ type ImageMetadata struct {
 	GnssSpeed     float64
 	GnssAltitude  float64
 	GnssCourse    float64
+}
+
+type ImageMinIOData struct {
+	ID         int
+	BucketName string
 }
