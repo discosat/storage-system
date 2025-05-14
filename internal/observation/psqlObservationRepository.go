@@ -33,10 +33,10 @@ func (p PsqlObservationRepository) CreateObservation(observationCommand Commands
 
 	var observationId int
 	// TODO UserId
-	err = p.db.QueryRow("INSERT INTO observation(observation_request_id, object_reference, user_id) VALUES ($1, $2, 1) RETURNING id", observationCommand.ObservationRequestId, objectReference).
+	err = p.db.QueryRow("INSERT INTO observation(observation_request_id, object_reference, user_id, bucket_name) VALUES ($1, $2, 1) RETURNING id", observationCommand.ObservationRequestId, objectReference, observationCommand.UserId, observationCommand.Bucket).
 		Scan(&observationId)
 
-	meta, err := p.CreateObservationMetadata(observationId, 10.4058633, 55.3821913)
+	meta, err := p.CreateObservationMetadata(observationId)
 	if err != nil {
 		log.Fatalf("Går galt ved metadata upload: %v", err)
 	}

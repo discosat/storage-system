@@ -3,9 +3,9 @@ package dim
 import (
 	"archive/zip"
 	"bytes"
-	. "github.com/discosat/storage-system/internal/Commands"
-
 	"encoding/json"
+	. "github.com/discosat/storage-system/internal/Commands"
+	"log/slog"
 	"path/filepath"
 	"strconv"
 
@@ -61,12 +61,23 @@ func (d DimService) handleUploadImage(file *io.ReadCloser, fileName string, file
 
 	// TODO Do error handling
 
-	// Need to open again after extracting metadata
-	raw, _ := io.ReadAll(*file)
-	ObservationRequestId := extractMetadata(raw)
+	// Reading bytes, to be able to use them twice
+	raw, err := io.ReadAll(*file)
+	if err != nil {
+		slog.Error("Could not read file")
+		return -1, err
+	}
 
-	log.Printf("Querying for ObservationRequest with id %v", ObservationRequestId)
-	observationRequestAggr, err := d.observationRequestRepository.GetObservationRequest(ObservationRequestId)
+	log.Printf("Extracting metadata from observation")
+	observationRequestId, metadata, err := extractMetadata(raw)
+	if err != nil {
+		return -1, err
+	}
+
+	log.Println(metadata)
+
+	log.Printf("Querying for ObservationRequest with id %v", observationRequestId)
+	observationRequestAggr, err := d.observationRequestRepository.GetObservationRequest(observationRequestId)
 	if err != nil {
 		return -1, err
 	}
@@ -188,7 +199,7 @@ func (d DimService) handleUploadBatch(archive *zip.ReadCloser) error {
 //
 //}
 
-func extractMetadata(raw []byte) int {
+func extractMetadata(raw []byte) (int, ObservationMetadata, error) {
 
 	// call exifTool
 	cmd := exec.Command("exiftool", "-json", "-")
@@ -196,6 +207,25 @@ func extractMetadata(raw []byte) int {
 	result, err := cmd.Output()
 	if err != nil {
 		log.Fatalf("err: %v", err)
+		return -1, ObservationMetadata{}, err
+	}
+
+	metadata := ObservationMetadata{
+		Size:          12345678,
+		Height:        1080,
+		Width:         1920,
+		Channels:      2,
+		Timestamp:     123456789,
+		BitsPixels:    6,
+		ImageOffset:   24,
+		Camera:        "W",
+		GnssLongitude: 10.4058633,
+		GnssLatitude:  553821913,
+		GnssDate:      123456789,
+		GnssTime:      123456789,
+		GnssSpeed:     420,
+		GnssAltitude:  17000,
+		GnssCourse:    2,
 	}
 
 	// Unmarshal the EXIF data to a map of properties in the comment tag
@@ -206,7 +236,8 @@ func extractMetadata(raw []byte) int {
 	err = json.Unmarshal([]byte(s), &l)
 	if err != nil {
 		log.Fatalf("err 3: %v", err)
+		return -1, ObservationMetadata{}, nil
 	}
 	relatedObservationRequest := l["measurementRequest"]
-	return relatedObservationRequest
+	return relatedObservationRequest, metadata, nil
 }

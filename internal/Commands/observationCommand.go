@@ -11,4 +11,5 @@ type ObservationCommand struct {
 	Bucket               string
 	FlightPlanName       string
 	ObservationRequestId int
+	UserId               int
 }
