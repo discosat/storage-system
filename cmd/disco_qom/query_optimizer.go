@@ -90,7 +90,10 @@ func StringToSQLTranslator(query interfaces.ImageRequest) (string, []interface{}
 		argIndex++
 	}
 
-	sqlQuery := "SELECT * FROM observation_metadata"
+	sqlQuery := `SELECT observation_metadata.*, observation.bucket_name, observation.object_reference
+				 FROM observation_metadata
+				 JOIN observation ON observation_metadata.observation_id = observation.id`
+
 	if len(conditions) > 0 {
 		sqlQuery += " WHERE " + strings.Join(conditions, " AND ")
 	}

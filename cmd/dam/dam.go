@@ -57,11 +57,10 @@ func RequestHandler(c *gin.Context) {
 	fmt.Println("Logging output of postgres service in dam.go: ", imageMetadata)
 
 	var imageMinIOData []interfaces.ImageMinIOData
-	bucketName := "images"
 	for _, metadata := range imageMetadata {
 		imageMinIOData = append(imageMinIOData, interfaces.ImageMinIOData{
-			ID:         metadata.ID,
-			BucketName: bucketName,
+			ObjectReference: metadata.ObjectReference,
+			BucketName:      metadata.BucketName,
 		})
 	}
 

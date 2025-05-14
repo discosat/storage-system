@@ -33,6 +33,7 @@ func InitDB() {
 func PostgresService(query string, args []interface{}) ([]interfaces.ImageMetadata, error) {
 	rows, err := db.Query(query, args...)
 	if err != nil {
+		log.SetFlags(log.LstdFlags | log.Lshortfile)
 		log.Fatal("An ERROR occured trying to create a query to the PostgreSQL database: ", err)
 	}
 
@@ -46,7 +47,7 @@ func PostgresService(query string, args []interface{}) ([]interfaces.ImageMetada
 		err := rows.Scan(
 			&row.ID, &row.CreatedAt, &row.UpdatedAt, &row.ObservationID, &row.Size, &row.Height, &row.Width, &row.Channels,
 			&row.Timestamp, &row.BitsPixels, &row.ImageOffset, &row.Camera, &row.Location,
-			&row.GnssDate, &row.GnssTime, &row.GnssSpeed, &row.GnssAltitude, &row.GnssCourse,
+			&row.GnssDate, &row.GnssTime, &row.GnssSpeed, &row.GnssAltitude, &row.GnssCourse, &row.BucketName, &row.ObjectReference,
 		)
 		if err != nil {
 			log.Println("Error scanning row:", err)
@@ -65,7 +66,7 @@ func PostgresService(query string, args []interface{}) ([]interfaces.ImageMetada
 func MinIOService(imageInfo []interfaces.ImageMinIOData) {
 
 	for _, image := range imageInfo {
-		fmt.Println("Image ID:", image.ID)
+		fmt.Println("Image ID:", image.ObjectReference)
 		fmt.Println("Bucket Name:", image.BucketName)
 	}
 	/*
