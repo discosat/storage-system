@@ -82,44 +82,27 @@ CREATE TABLE observation
 
 
 -- START Bucket enforcing
-CREATE OR REPLACE FUNCTION set_observation_bucket()
+CREATE OR REPLACE FUNCTION update_observation_buckets()
     RETURNS TRIGGER AS
 $$
 BEGIN
-    SELECT m.bucket
-    INTO NEW.bucket
-    FROM mission m
-             JOIN flight_plan fp ON fp.mission_id = m.id
-             JOIN observation_request orq ON orq.flight_plan_id = fp.id
-    WHERE orq.id = NEW.observation_request_id;
+    UPDATE observation o
+    SET bucket_name = NEW.bucket
+    FROM observation_request orq
+             JOIN flight_plan fp ON orq.flight_plan_id = fp.id
+    WHERE o.observation_request_id = orq.id
+      AND fp.mission_id = NEW.id;
 
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER set_bucket_trigger
-    BEFORE INSERT
-    ON observation
+CREATE TRIGGER update_observation_buckets_trigger
+    AFTER UPDATE OF bucket
+    ON mission
     FOR EACH ROW
-EXECUTE PROCEDURE set_observation_bucket();
-
-CREATE OR REPLACE FUNCTION prevent_bucket_update()
-    RETURNS TRIGGER AS
-$$
-BEGIN
-    IF NEW.bucket IS DISTINCT FROM OLD.bucket THEN
-        RAISE EXCEPTION 'Bucket field is immutable and cannot be updated';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER prevent_bucket_update_trigger
-    BEFORE UPDATE
-    ON observation
-    FOR EACH ROW
-EXECUTE FUNCTION prevent_bucket_update();
-
+    WHEN (OLD.bucket IS DISTINCT FROM NEW.bucket)
+EXECUTE FUNCTION update_observation_buckets();
 -- END bucket enforcing
 
 
