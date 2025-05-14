@@ -27,3 +27,9 @@ type ImageMinIOData struct {
 	ObjectReference string
 	BucketName      string
 }
+
+type RetrievedImages struct {
+	ObjectReference string
+	BucketName      string
+	Image           []byte
+}

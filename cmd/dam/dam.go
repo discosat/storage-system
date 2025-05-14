@@ -7,7 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
-	"path/filepath"
 )
 
 func Start() {
@@ -65,19 +64,23 @@ func RequestHandler(c *gin.Context) {
 	}
 
 	//Calling Minio service with image IDs
-	MinIOService(imageMinIOData)
+	retrievedImages, err := MinIOService(imageMinIOData)
+	if err != nil {
+		log.Fatal("Failed to call MinIO service", err)
+	}
 
 	//bundling images together
-	imageFound := ImageBundler()
+	//imageFound := ImageBundler()
 
 	//Handle response
-	ResponseHandler(c, imageFound)
+	ResponseHandler(c, retrievedImages)
 }
 
-func ResponseHandler(c *gin.Context, imageFound bool) {
-	if imageFound {
-		imagePath := filepath.Join("cmd", "mock_images", "Greenland_Glacier_Mock.jpg")
-		c.File(imagePath)
+func ResponseHandler(c *gin.Context, retrievedImages []interfaces.RetrievedImages) {
+	if len(retrievedImages) > 0 {
+		imageData := retrievedImages[0].Image
+
+		c.Data(http.StatusOK, "image/jpeg", imageData)
 		return
 	}
 
