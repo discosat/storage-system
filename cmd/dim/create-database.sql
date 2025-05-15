@@ -40,6 +40,7 @@ CREATE TRIGGER updated_at_trigger
     FOR EACH ROW
 EXECUTE PROCEDURE set_updated_at();
 
+CREATE TYPE observation_type AS ENUM ('image', 'image_series', 'number', 'other');
 
 CREATE TABLE observation_request
 (
@@ -47,7 +48,7 @@ CREATE TABLE observation_request
     created_at     TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at     TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     flight_plan_id INT                                    NOT NULL,
-    type           VARCHAR(255),
+    type           observation_type,
     CONSTRAINT fk_flight_plan FOREIGN KEY (flight_plan_id) REFERENCES flight_plan (id)
 );
 

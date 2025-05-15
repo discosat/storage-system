@@ -85,7 +85,7 @@ func (d DimService) handleUploadImage(file *io.ReadCloser, fileName string, file
 	fileReader := bytes.NewReader(raw)
 	observationCommand := ObservationCommand{File: fileReader, FileName: fileName, FileSize: fileSize, Bucket: observationRequestAggr.Mission.Bucket, FlightPlanName: observationRequestAggr.FlightPlan.Name, ObservationRequestId: observationRequestAggr.ObservationRequest.Id}
 	// Saves image
-	observationId, err := d.observationRepository.CreateObservation(observationCommand)
+	observationId, err := d.observationRepository.CreateObservation(observationCommand, &metadata)
 	if err != nil {
 		return -1, err
 	}
@@ -218,7 +218,7 @@ func extractMetadata(raw []byte) (int, ObservationMetadata, error) {
 		Timestamp:     123456789,
 		BitsPixels:    6,
 		ImageOffset:   24,
-		Camera:        "W",
+		Camera:        "I",
 		GnssLongitude: 10.4058633,
 		GnssLatitude:  553821913,
 		GnssDate:      123456789,

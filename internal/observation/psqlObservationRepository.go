@@ -21,7 +21,7 @@ func (p PsqlObservationRepository) GetObservation(id int) (Observation, error) {
 	panic("implement me")
 }
 
-func (p PsqlObservationRepository) CreateObservation(observationCommand Commands.ObservationCommand) (int, error) {
+func (p PsqlObservationRepository) CreateObservation(observationCommand Commands.ObservationCommand, metadata *ObservationMetadata) (int, error) {
 
 	//tx := p.db.BeginTx()
 
@@ -33,10 +33,13 @@ func (p PsqlObservationRepository) CreateObservation(observationCommand Commands
 
 	var observationId int
 	// TODO UserId
-	err = p.db.QueryRow("INSERT INTO observation(observation_request_id, object_reference, user_id, bucket_name) VALUES ($1, $2, 1) RETURNING id", observationCommand.ObservationRequestId, objectReference, observationCommand.UserId, observationCommand.Bucket).
+	err = p.db.QueryRow("INSERT INTO observation(observation_request_id, object_reference, user_id, bucket_name) VALUES ($1, $2, $3, $4) RETURNING id", observationCommand.ObservationRequestId, objectReference, observationCommand.UserId, observationCommand.Bucket).
 		Scan(&observationId)
+	if err != nil {
+		log.Fatalf("err %v", err)
+	}
 
-	meta, err := p.CreateObservationMetadata(observationId)
+	meta, err := p.CreateObservationMetadata(observationId, metadata)
 	if err != nil {
 		log.Fatalf("Går galt ved metadata upload: %v", err)
 	}
@@ -51,9 +54,10 @@ func (p PsqlObservationRepository) GetObservationMetadata(id int) (ObservationMe
 	panic("implement me")
 }
 
-func (p PsqlObservationRepository) CreateObservationMetadata(observationId int, long float64, lat float64) (int, error) {
+func (p PsqlObservationRepository) CreateObservationMetadata(observationId int, metadata *ObservationMetadata) (int, error) {
 	var metaId int
-	err := p.db.QueryRow("INSERT INTO observation_metadata(measurement_id, location) VALUES ($1, ST_SetSRID(ST_MakePoint($2, $3), 4326)) RETURNING id", observationId, long, lat).
+	err := p.db.QueryRow("INSERT INTO observation_metadata(observation_id, size, height, width, channels, timestamp, bits_pixels, image_offset, camera, location, gnss_date, gnss_time, gnss_speed, gnss_altitude, gnss_course) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,ST_SetSRID(ST_MakePoint($10,$11), 4326),$12,$13,$14,$15,$16) RETURNING id",
+		observationId, metadata.Size, metadata.Height, metadata.Width, metadata.Channels, metadata.Timestamp, metadata.BitsPixels, metadata.ImageOffset, metadata.Camera, metadata.GnssLongitude, metadata.GnssLatitude, metadata.GnssDate, metadata.GnssTime, metadata.GnssSpeed, metadata.GnssAltitude, metadata.GnssCourse).
 		Scan(&metaId)
 	return metaId, err
 }
