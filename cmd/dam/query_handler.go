@@ -13,13 +13,13 @@ func newQueryPusher(qom interfaces.QueryOptimizer) *QueryPusher {
 	return &QueryPusher{qom: qom}
 }
 
-func (p *QueryPusher) PushQuery(query interfaces.ImageRequest) error {
-	err := p.qom.Optimize(query)
+func (p *QueryPusher) PushQuery(query interfaces.ImageRequest) (string, []interface{}, error) {
+	sqlQuery, args, err := p.qom.Optimize(query)
 
 	if err != nil {
 		log.Println("Error passing on query", err)
-		return err
+		return "", nil, err
 	}
 
-	return nil
+	return sqlQuery, args, nil
 }
