@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"time"
 )
 
 func Start() {
@@ -64,26 +65,29 @@ func RequestHandler(c *gin.Context) {
 	}
 
 	//Calling Minio service with image IDs
-	retrievedImages, err := MinIOService(imageMinIOData)
-	if err != nil {
-		log.Fatal("Failed to call MinIO service", err)
+	retrievedImages, minIOErr := MinIOService(imageMinIOData)
+	if minIOErr != nil {
+		log.Fatal("Failed to call MinIO service", minIOErr)
 	}
 
 	//bundling images together
-	//imageFound := ImageBundler()
-
-	//Handle response
-	ResponseHandler(c, retrievedImages)
-}
-
-func ResponseHandler(c *gin.Context, retrievedImages []interfaces.RetrievedImages) {
-	if len(retrievedImages) > 0 {
-		imageData := retrievedImages[0].Image
-
-		c.Data(http.StatusOK, "image/jpeg", imageData)
-		return
+	zipBundle, bundleErr := ImageBundler(retrievedImages, imageMetadata)
+	if bundleErr != nil {
+		log.Fatal("Failed to bundle images", bundleErr)
 	}
 
+	//Handle response
+	ResponseHandler(c, zipBundle)
+}
+
+func ResponseHandler(c *gin.Context, zipBundle []byte) {
+	if len(zipBundle) > 0 {
+		filename := fmt.Sprintf("image_bundle_%d.zip", time.Now().Unix())
+		fmt.Println("Logging filename of zip: ", filename)
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+		c.Data(http.StatusOK, "application/zip", zipBundle)
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "No images matched the query",
 	})

@@ -82,11 +82,6 @@ func MinIOService(imageInfo []interfaces.ImageMinIOData) ([]interfaces.Retrieved
 		log.Fatal("Failed to create MinIO client:", err)
 	}
 
-	/*_, err = minioClient.ListBuckets(context.Background())
-	if err != nil {
-		log.Fatalf("Could not connect to Minio instance. Double check that it is up and running, and that you have provided correct credentials")
-	}*/
-
 	ctx := context.Background()
 	results := make([]interfaces.RetrievedImages, 0)
 
