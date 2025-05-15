@@ -60,7 +60,7 @@ func NewMinioStore() MinioStore {
 		log.Fatalf("NewMinioStore: Cant find env - %v", err)
 	}
 	endpoint := os.Getenv("MINIO_ENDPOINT")
-	accessKeyID := os.Getenv("MINO_ACCESS_KEY_ID")
+	accessKeyID := os.Getenv("MINIO_ACCESS_KEY_ID")
 	secretAccessKey := os.Getenv("MINIO_SECRET_ACCESS_KEY")
 	useSSL := true
 

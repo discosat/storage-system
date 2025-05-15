@@ -1,22 +1,21 @@
 package main
 
 import (
+	"fmt"
+	"github.com/discosat/storage-system/cmd/dam"
 	"github.com/discosat/storage-system/cmd/dim"
-	"database/sql"
 	"github.com/discosat/storage-system/internal/objectStore"
 	"github.com/discosat/storage-system/internal/observation"
 	"github.com/discosat/storage-system/internal/observationRequest"
-	"fmt"
-	"github.com/discosat/storage-system/cmd/dam"
-	"github.com/joho/godotenv"
 	"github.com/jmoiron/sqlx"
+	"github.com/joho/godotenv"
 	"log"
 	"log/slog"
 	"os"
 )
 
 func main() {
-	fmt.SetFlags(log.LstdFlags | log.Lshortfile)
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	slog.Info("starting DIM-DAM system backend")
 
 	store := objectStore.NewMinioStore()
