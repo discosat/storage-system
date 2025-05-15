@@ -7,13 +7,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
-	"path/filepath"
+	"time"
 )
 
 func Start() {
 	g := gin.Default()
 
 	g.GET("/search-images", RequestHandler)
+
+	g.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
 
 	err := g.Run(":8081")
 	if err != nil {
@@ -37,25 +41,53 @@ func RequestHandler(c *gin.Context) {
 	discoQO := &disco_qom.DiscoQO{}
 	queryPusher := newQueryPusher(discoQO)
 
-	passingErr := queryPusher.PushQuery(req)
+	//Optimized query + arguments gets returned
+	sqlQuery, args, passingErr := queryPusher.PushQuery(req)
 	if passingErr != nil {
 		log.Fatal("Failed to pass query to QOM", passingErr)
 	}
 
-	//bundling images together
-	imageFound := ImageBundler()
+	//Calling db with SQL query string and arguments
+	imageMetadata, PostgresErr := PostgresService(sqlQuery, args)
+	if PostgresErr != nil {
+		log.Fatal("Failed to call PostgreSQL DB with SQL query", PostgresErr)
+	}
+	fmt.Println("Logging optimized query in dam.go: ", sqlQuery)
+	fmt.Println("Logging optimized query arguments in dam.go: ", args)
+	fmt.Println("Logging output of postgres service in dam.go: ", imageMetadata)
 
-	//Handle response
-	ResponseHandler(c, imageFound)
-}
-
-func ResponseHandler(c *gin.Context, imageFound bool) {
-	if imageFound {
-		imagePath := filepath.Join("cmd", "mock_images", "Greenland_Glacier_Mock.jpg")
-		c.File(imagePath)
-		return
+	var imageMinIOData []interfaces.ImageMinIOData
+	for _, metadata := range imageMetadata {
+		imageMinIOData = append(imageMinIOData, interfaces.ImageMinIOData{
+			ObjectReference: metadata.ObjectReference,
+			BucketName:      metadata.BucketName,
+		})
 	}
 
+	//Calling Minio service with image IDs
+	retrievedImages, minIOErr := MinIOService(imageMinIOData)
+	if minIOErr != nil {
+		log.Fatal("Failed to call MinIO service", minIOErr)
+	}
+
+	//bundling images together
+	zipBundle, bundleErr := ImageBundler(retrievedImages, imageMetadata)
+	if bundleErr != nil {
+		log.Fatal("Failed to bundle images", bundleErr)
+	}
+
+	//Handle response
+	ResponseHandler(c, zipBundle)
+}
+
+func ResponseHandler(c *gin.Context, zipBundle []byte) {
+	if len(zipBundle) > 0 {
+		filename := fmt.Sprintf("image_bundle_%d.zip", time.Now().Unix())
+		fmt.Println("Logging filename of zip: ", filename)
+		c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+		c.Data(http.StatusOK, "application/zip", zipBundle)
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "No images matched the query",
 	})

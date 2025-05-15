@@ -8,13 +8,10 @@ import (
 
 type DiscoQO struct{}
 
-func (q *DiscoQO) Optimize(query interfaces.ImageRequest) error {
+func (q *DiscoQO) Optimize(query interfaces.ImageRequest) (string, []interface{}, error) {
 	sqlQuery, args := StringToSQLTranslator(query)
 
-	fmt.Println("Logging optimized query: ", sqlQuery)
-	fmt.Println("Logging optimized query arguments: ", args)
-
-	return nil
+	return sqlQuery, args, nil
 }
 
 func StringToSQLTranslator(query interfaces.ImageRequest) (string, []interface{}) {
@@ -79,10 +76,10 @@ func StringToSQLTranslator(query interfaces.ImageRequest) (string, []interface{}
 		argIndex++
 	}
 
-	if query.CamType != nil {
-		fmt.Println("Logging cam type after stripping it from image request", *query.CamType)
-		conditions = append(conditions, fmt.Sprintf("cam_type = $%d", argIndex))
-		args = append(args, *query.CamType)
+	if query.Camera != nil {
+		fmt.Println("Logging cam type after stripping it from image request", *query.Camera)
+		conditions = append(conditions, fmt.Sprintf("camera = $%d", argIndex))
+		args = append(args, *query.Camera)
 		argIndex++
 	}
 
@@ -93,7 +90,10 @@ func StringToSQLTranslator(query interfaces.ImageRequest) (string, []interface{}
 		argIndex++
 	}
 
-	sqlQuery := "SELECT * FROM images"
+	sqlQuery := `SELECT observation_metadata.*, observation.bucket_name, observation.object_reference
+				 FROM observation_metadata
+				 JOIN observation ON observation_metadata.observation_id = observation.id`
+
 	if len(conditions) > 0 {
 		sqlQuery += " WHERE " + strings.Join(conditions, " AND ")
 	}

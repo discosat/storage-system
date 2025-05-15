@@ -9,6 +9,6 @@ type ImageRequest struct {
 	LatTo     *float64 `form:"lat_to" binding:"omitempty"`
 	LonFrom   *float64 `form:"lon_from" binding:"omitempty"`
 	LonTo     *float64 `form:"lon_to" binding:"omitempty"`
-	CamType   *string  `form:"cam_type" binding:"required"`
+	Camera    *string  `form:"camera" binding:"required"`
 	Date      *int64   `form:"date" binding:"omitempty"`
 }
