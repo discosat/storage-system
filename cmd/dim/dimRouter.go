@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func Start(dimController *DimController) {
+func ConfigureRouter(dimController *DimController) *gin.Engine {
 
 	router := gin.Default()
 	router.GET("/ping", func(c *gin.Context) {
@@ -24,5 +24,5 @@ func Start(dimController *DimController) {
 	//router.GET("/requestsNoObservation", GetRequestsNoObservation)
 	router.GET("/test", dimController.Test)
 
-	router.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	return router
 }

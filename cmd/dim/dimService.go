@@ -4,27 +4,24 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/json"
+	"fmt"
 	. "github.com/discosat/storage-system/internal/Commands"
 	"log/slog"
-	"path/filepath"
 	"strconv"
 
-	//"fmt"
 	. "github.com/discosat/storage-system/internal/observation"
 	. "github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"io"
 	"log"
-	//"os"
 	"os/exec"
-	//"path/filepath"
 )
 
 type DimServiceInterface interface {
 	handleUploadImage(file *io.ReadCloser, fileName string, fileSize int64) (int, error)
 	handleUploadBatch(archive *zip.ReadCloser) error
-	handleGetFlightPlan(id int) (FlightPlan, error)
+	handleGetFlightPlan(id int) (FlightPlanEntity, error)
 	handleCreateFlightPlan(flightPlan FlightPlanCommand, requestList []ObservationRequestCommand) (int, error)
 	test(c *gin.Context) (ObservationRequestAggregate, error)
 }
@@ -93,7 +90,7 @@ func (d DimService) handleUploadImage(file *io.ReadCloser, fileName string, file
 	return observationId, nil
 }
 
-func (d DimService) handleGetFlightPlan(id int) (FlightPlan, error) {
+func (d DimService) handleGetFlightPlan(id int) (FlightPlanEntity, error) {
 	return d.observationRequestRepository.GetFlightPlantById(id)
 }
 
@@ -111,9 +108,9 @@ func (d DimService) handleUploadBatch(archive *zip.ReadCloser) error {
 			return err
 		}
 		//oFile, err = iFile.Open()
-		_, err = d.handleUploadImage(&oFile, iFile.FileInfo().Name(), iFile.FileInfo().Size())
+		_, err = d.handleUploadImage(&oFile, iFile.Name, iFile.FileInfo().Size())
 		if err != nil {
-			log.Printf("UploadBatch: Cannot upload thie file %v, error is %v", filepath.Base(iFile.Name), err)
+			log.Printf("UploadBatch: Cannot upload thie file %v, error is %v", iFile.Name, err)
 			break
 		}
 		err = oFile.Close()
@@ -123,81 +120,10 @@ func (d DimService) handleUploadBatch(archive *zip.ReadCloser) error {
 		//log.Println(result)
 	}
 
-	log.Println("done")
+	log.Println("batch is uploaded")
 
 	return nil
 }
-
-//
-//func handleGetMissions(c *gin.Context) ([]Mission, error) {
-//	var missions []Mission
-//
-//	rows, err := db.Query("SELECT * FROM mission")
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	for rows.Next() {
-//		var mission Mission
-//		if err := rows.Scan(&mission.Id, &mission.Name, &mission.Bucket); err != nil {
-//			return missions, err
-//		}
-//		missions = append(missions, mission)
-//	}
-//
-//	if err = rows.Err(); err != nil {
-//		return missions, err
-//	}
-//	return missions, nil
-//}
-//
-//func handleGetRequests(c *gin.Context) ([]FlightPlan, error) {
-//
-//	missionId := c.Query("missionId")
-//
-//	var requests []FlightPlan
-//	rows, err := db.Query("SELECT * FROM flightPlan WHERE mission_id = $1", missionId)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	for rows.Next() {
-//		var flightPlan FlightPlan
-//		if err := rows.Scan(&flightPlan.Id, &flightPlan.Name, &flightPlan.UserId, &flightPlan.MissionId); err != nil {
-//			return requests, err
-//		}
-//		requests = append(requests, flightPlan)
-//	}
-//
-//	if err = rows.Err(); err != nil {
-//		return requests, err
-//	}
-//
-//	return requests, nil
-//}
-//
-//func handleGetRequestsNoObservation(c *gin.Context) ([]FlightPlan, error) {
-//	var requests []FlightPlan
-//	rows, err := db.Query("SELECT r.id, r.name, r.user_id, r.mission_id FROM flightPlan r LEFT JOIN public.observation o on r.id = o.request_id WHERE o.id IS NULL")
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	for rows.Next() {
-//		var flightPlan FlightPlan
-//		if err := rows.Scan(&flightPlan.Id, &flightPlan.Name, &flightPlan.UserId, &flightPlan.MissionId); err != nil {
-//			return requests, err
-//		}
-//		requests = append(requests, flightPlan)
-//	}
-//
-//	if err = rows.Err(); err != nil {
-//		return requests, err
-//	}
-//
-//	return requests, nil
-//
-//}
 
 func extractMetadata(raw []byte) (int, ObservationMetadata, error) {
 
@@ -206,7 +132,7 @@ func extractMetadata(raw []byte) (int, ObservationMetadata, error) {
 	cmd.Stdin = bytes.NewReader(raw)
 	result, err := cmd.Output()
 	if err != nil {
-		log.Fatalf("err: %v", err)
+		//log.Fatalf("err: %v", err)
 		return -1, ObservationMetadata{}, err
 	}
 
@@ -235,9 +161,12 @@ func extractMetadata(raw []byte) (int, ObservationMetadata, error) {
 	var l map[string]int
 	err = json.Unmarshal([]byte(s), &l)
 	if err != nil {
-		log.Fatalf("err 3: %v", err)
-		return -1, ObservationMetadata{}, nil
+		return -1, ObservationMetadata{}, fmt.Errorf("extractMetadata: %v", err)
 	}
+
 	relatedObservationRequest := l["measurementRequest"]
+	if relatedObservationRequest == 0 {
+		return -1, ObservationMetadata{}, fmt.Errorf("extractMetadata: %v", err)
+	}
 	return relatedObservationRequest, metadata, nil
 }

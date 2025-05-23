@@ -27,11 +27,11 @@ func (p PsqlObservationRequestRepository) GetObservationRequest(id int) (Observa
 			//&observationRequestEntity.ObservationRequest.FId,
 			&observationRequestEntity.ObservationRequest.OType,
 			&observationRequestEntity.FlightPlan.Id,
-			//&observationRequestEntity.FlightPlan.CreatedAt,
-			//&observationRequestEntity.FlightPlan.UpdatedAt,
+			//&observationRequestEntity.FlightPlanEntity.CreatedAt,
+			//&observationRequestEntity.FlightPlanEntity.UpdatedAt,
 			&observationRequestEntity.FlightPlan.Name,
 			&observationRequestEntity.FlightPlan.UserId,
-			//&observationRequestEntity.FlightPlan.MissionId,
+			//&observationRequestEntity.FlightPlanEntity.MissionId,
 			&observationRequestEntity.Mission.Id,
 			//&observationRequestEntity.Mission.CreatedAt,
 			//&observationRequestEntity.Mission.UpdatedAt,
@@ -46,8 +46,8 @@ func (p PsqlObservationRequestRepository) GetMissionById(id int) (Mission, error
 	panic("implement me")
 }
 
-func (p PsqlObservationRequestRepository) GetFlightPlantById(id int) (FlightPlan, error) {
-	var flightPlan FlightPlan
+func (p PsqlObservationRequestRepository) GetFlightPlantById(id int) (FlightPlanEntity, error) {
+	var flightPlan FlightPlanEntity
 	err := p.db.QueryRow("SELECT * FROM flight_plan WHERE id = $1", id).Scan(&flightPlan.Id, &flightPlan.CreatedAt, &flightPlan.UpdatedAt, &flightPlan.Name, &flightPlan.UserId, &flightPlan.MissionId)
 	if err != nil {
 		return flightPlan, err

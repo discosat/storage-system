@@ -31,7 +31,7 @@ func (p PsqlObservationRepository) CreateObservation(observationCommand Commands
 	}
 
 	// TODO På et rollback ad SQL tx, skal billedet slettes
-	objectReference, err := p.objectStore.SaveImage(observationCommand)
+	objectReference, err := p.objectStore.SaveObservation(observationCommand)
 	if err != nil {
 		return -1, err
 	}
@@ -55,7 +55,7 @@ func (p PsqlObservationRepository) CreateObservation(observationCommand Commands
 
 	err = tx.Commit()
 	if err != nil {
-		_, dErr := p.objectStore.DeleteImage(objectReference, observationCommand.Bucket)
+		_, dErr := p.objectStore.DeleteObservation(objectReference, observationCommand.Bucket)
 		if dErr != nil {
 			return -2, fmt.Errorf("could not delete observation: %v from minio after failed transaction. Manual intervention needed: %v", objectReference, err)
 		}
