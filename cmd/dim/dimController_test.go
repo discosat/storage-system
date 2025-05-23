@@ -6,12 +6,15 @@ import (
 	"github.com/discosat/storage-system/internal/observation"
 	"github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/assert/v2"
 	"github.com/jmoiron/sqlx"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go/modules/minio"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"io"
 	"log"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 )
@@ -66,7 +69,17 @@ func (s *DimControllerIntegrationTestSuite) SetupSuite() {
 }
 
 func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanIntegration() {
-	assert.True(s.T(), true)
+	t := s.T()
+	expected := `{"message":"pong"}`
+
+	request, _ := http.NewRequest("GET", "/ping", nil)
+	w := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+
+	response, _ := io.ReadAll(w.Body)
+	assert.Equal(t, expected, string(response))
+	println(response)
+
 }
 
 func TestDimControllerTestSuite(t *testing.T) {
