@@ -176,7 +176,19 @@ func (p PsqlObservationRequestRepository) UpdateFlightPlan(flightPlan FlightPlan
 	return flightPlan.Id, nil
 }
 func (p PsqlObservationRequestRepository) DeleteFlightPlan(id int) (bool, error) {
-	return false, nil
+	tx, err := p.db.BeginTx(context.Background(), &sql.TxOptions{})
+	if err != nil {
+		return false, err
+	}
+	_, err = tx.Exec("DELETE FROM flight_plan WHERE id = $1", id)
+	if err != nil {
+		return false, err
+	}
+	err = tx.Commit()
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (p PsqlObservationRequestRepository) GetObservationRequestById(id int) (ObservationRequest, error) {

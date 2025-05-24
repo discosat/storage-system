@@ -100,15 +100,12 @@ func (d DimService) handleCreateFlightPlan(flightPlan CreateFlightPlanCommand, r
 }
 
 func (d DimService) handleUpdateFlightPlan(flightPlan FlightPlanAggregate) (int, error) {
-	id, err := d.observationRequestRepository.UpdateFlightPlan(flightPlan)
-	if err != nil {
-		return -1, err
-	}
-	return id, nil
+	return d.observationRequestRepository.UpdateFlightPlan(flightPlan)
+
 }
 
 func (d DimService) handleDeleteFlightPlan(id int) (bool, error) {
-	return false, nil
+	return d.observationRequestRepository.DeleteFlightPlan(id)
 }
 
 func (d DimService) handleUploadBatch(archive *zip.ReadCloser) error {

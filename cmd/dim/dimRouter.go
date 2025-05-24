@@ -13,10 +13,10 @@ func ConfigureRouter(dimController *DimController) *gin.Engine {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
 
-	//router.POST("/file", dimController.UploadImage)
 	router.GET("/flightPlan", dimController.GetFlightPlan)
 	router.POST("/flightPlan", dimController.CreateFlightPlan)
 	router.PUT("/flightPlan", dimController.UpdateFlightPlan)
+	router.DELETE("/flightPlan", dimController.DeleteFlightPlan)
 	router.POST("/batch", dimController.UploadBatch)
 	//router.GET("/missions", GetMissions)
 	//router.GET("/requests", GetRequests)

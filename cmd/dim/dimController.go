@@ -100,7 +100,24 @@ func (d DimController) UpdateFlightPlan(c *gin.Context) {
 }
 
 func (d DimController) DeleteFlightPlan(c *gin.Context) {
+	id := c.Query("id")
+	if id == "" {
+		errorAbortMessage(c, http.StatusBadRequest, fmt.Errorf("please enter an id"))
+		return
+	}
 
+	fpId, err := strconv.Atoi(id)
+	if err != nil {
+		errorAbortMessage(c, http.StatusBadRequest, fmt.Errorf("id is not a number: %v", id))
+		return
+	}
+
+	_, err = d.dimService.handleDeleteFlightPlan(fpId)
+	if err != nil {
+		errorAbortMessage(c, http.StatusInternalServerError, fmt.Errorf("error in deleting flight plan wtih id: %v: %v", fpId, err))
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("flight plan: %v has been deleted", fpId)})
 }
 
 func (d DimController) UploadBatch(c *gin.Context) {
