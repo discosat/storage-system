@@ -49,24 +49,26 @@ CREATE TABLE observation_request
     updated_at     TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     flight_plan_id INT                                    NOT NULL,
     type           observation_type,
-    CONSTRAINT fk_flight_plan FOREIGN KEY (flight_plan_id) REFERENCES flight_plan (id)
+    locked         boolean                  DEFAULT FALSE NOT NULL,
+    CONSTRAINT fk_flight_plan FOREIGN KEY (flight_plan_id) REFERENCES flight_plan (id) ON DELETE CASCADE
 );
 
-CREATE TABLE observation_request_metadata
-(
-    id                     SERIAL PRIMARY KEY,
-    created_at             TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-    updated_at             TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-    observation_request_id INT                                    NOT NULL,
-    metadata               VARCHAR(255),
-    CONSTRAINT fk_observation_request FOREIGN KEY (observation_request_id) REFERENCES observation_request (id)
-);
+-- CREATE TABLE observation_request_metadata
+-- (
+--     id                     SERIAL PRIMARY KEY,
+--     created_at             TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+--     updated_at             TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+--     observation_request_id INT                                    NOT NULL,
+--     metadata               VARCHAR(255),
+--     flight_plan_reference
+--     CONSTRAINT fk_observation_request FOREIGN KEY (observation_request_id) REFERENCES observation_request (id)
+-- );
 
-CREATE TRIGGER updated_at_trigger
-    BEFORE UPDATE
-    ON observation_request_metadata
-    FOR EACH ROW
-EXECUTE PROCEDURE set_updated_at();
+-- CREATE TRIGGER updated_at_trigger
+--     BEFORE UPDATE
+--     ON observation_request_metadata
+--     FOR EACH ROW
+-- EXECUTE PROCEDURE set_updated_at();
 
 
 CREATE TABLE observation
@@ -133,7 +135,7 @@ CREATE TABLE observation_metadata
     gnss_speed     FLOAT,
     gnss_altitude  FLOAT,
     gnss_cource    FLOAT,
-    CONSTRAINT fk_observation FOREIGN KEY (observation_id) REFERENCES observation (id)
+    CONSTRAINT fk_observation FOREIGN KEY (observation_id) REFERENCES observation(id) ON DELETE CASCADE
 );
 
 CREATE TRIGGER updated_at_trigger
