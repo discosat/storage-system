@@ -16,11 +16,11 @@ func ConfigureRouter(dimController *DimController) *gin.Engine {
 	//router.POST("/file", dimController.UploadImage)
 	router.GET("/flightPlan", dimController.GetFlightPlan)
 	router.POST("/flightPlan", dimController.CreateFlightPlan)
+	router.PUT("/flightPlan", dimController.UpdateFlightPlan)
 	router.POST("/batch", dimController.UploadBatch)
 	//router.GET("/missions", GetMissions)
 	//router.GET("/requests", GetRequests)
 	//router.GET("/requestsNoObservation", GetRequestsNoObservation)
-	router.GET("/test", dimController.Test)
 
 	return router
 }

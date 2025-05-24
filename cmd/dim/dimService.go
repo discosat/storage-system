@@ -21,8 +21,10 @@ import (
 type DimServiceInterface interface {
 	handleUploadImage(file *io.ReadCloser, fileName string, fileSize int64) (int, error)
 	handleUploadBatch(archive *zip.ReadCloser) error
-	handleGetFlightPlan(id int) (FlightPlanEntity, error)
-	handleCreateFlightPlan(flightPlan FlightPlanCommand, requestList []ObservationRequestCommand) (int, error)
+	handleGetFlightPlan(id int) (FlightPlanAggregate, error)
+	handleCreateFlightPlan(flightPlan CreateFlightPlanCommand, requestList []CreateObservationRequestCommand) (int, error)
+	handleUpdateFlightPlan(flightPlan FlightPlanAggregate) (int, error)
+	handleDeleteFlightPlan(id int) (bool, error)
 }
 
 type DimService struct {
@@ -89,12 +91,24 @@ func (d DimService) handleUploadImage(file *io.ReadCloser, fileName string, file
 	return observationId, nil
 }
 
-func (d DimService) handleGetFlightPlan(id int) (FlightPlanEntity, error) {
-	return d.observationRequestRepository.GetFlightPlantById(id)
+func (d DimService) handleGetFlightPlan(id int) (FlightPlanAggregate, error) {
+	return d.observationRequestRepository.GetFlightPlanById(id)
 }
 
-func (d DimService) handleCreateFlightPlan(flightPlan FlightPlanCommand, requestList []ObservationRequestCommand) (int, error) {
+func (d DimService) handleCreateFlightPlan(flightPlan CreateFlightPlanCommand, requestList []CreateObservationRequestCommand) (int, error) {
 	return d.observationRequestRepository.CreateFlightPlan(flightPlan, requestList)
+}
+
+func (d DimService) handleUpdateFlightPlan(flightPlan FlightPlanAggregate) (int, error) {
+	id, err := d.observationRequestRepository.UpdateFlightPlan(flightPlan)
+	if err != nil {
+		return -1, err
+	}
+	return id, nil
+}
+
+func (d DimService) handleDeleteFlightPlan(id int) (bool, error) {
+	return false, nil
 }
 
 func (d DimService) handleUploadBatch(archive *zip.ReadCloser) error {

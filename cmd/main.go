@@ -1,12 +1,12 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/discosat/storage-system/cmd/dim"
 	"github.com/discosat/storage-system/internal/objectStore"
 	"github.com/discosat/storage-system/internal/observation"
 	"github.com/discosat/storage-system/internal/observationRequest"
-	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	"log"
 	"log/slog"
@@ -51,8 +51,8 @@ func main() {
 	select {}
 }
 
-func ConfigDatabase() *sqlx.DB {
-	db, err := sqlx.Open("pgx", fmt.Sprint("postgres://", os.Getenv("PGUSER"), ":", os.Getenv("PGPASSWORD"), "@", os.Getenv("PGHOST"), "/", os.Getenv("PGDATABASE")))
+func ConfigDatabase() *sql.DB {
+	db, err := sql.Open("pgx", fmt.Sprint("postgres://", os.Getenv("PGUSER"), ":", os.Getenv("PGPASSWORD"), "@", os.Getenv("PGHOST"), "/", os.Getenv("PGDATABASE")))
 	if err != nil {
 		log.Fatalf("Unable to configrue database: %v", err)
 	}

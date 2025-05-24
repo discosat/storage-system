@@ -102,7 +102,7 @@ func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegration() {
 	writer := multipart.NewWriter(body)
 	fpPart, _ := writer.CreateFormField("flightPlan")
 	// New flight Plan
-	fpCommand := Commands.FlightPlanCommand{
+	fpCommand := Commands.CreateFlightPlanCommand{
 		Name:      "Test Flight Plan",
 		UserId:    1,
 		MissionId: 1,
@@ -113,7 +113,7 @@ func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegration() {
 	// With two observation request
 	// observation request 1
 	orPart1, _ := writer.CreateFormField("requestList")
-	orCommand := Commands.ObservationRequestCommand{
+	orCommand := Commands.CreateObservationRequestCommand{
 		OType: "image",
 	}
 	orJson, _ := json.Marshal(orCommand)
@@ -121,7 +121,7 @@ func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegration() {
 
 	// observation request 2
 	orPart2, _ := writer.CreateFormField("requestList")
-	orCommand = Commands.ObservationRequestCommand{
+	orCommand = Commands.CreateObservationRequestCommand{
 		OType: "other",
 	}
 	orJson, _ = json.Marshal(orCommand)
@@ -150,7 +150,7 @@ func (s *DimControllerIntegrationTestSuite) TestFlightPlanNoObservationRequestsI
 	writer := multipart.NewWriter(body)
 	fpPart, _ := writer.CreateFormField("flightPlan")
 	// New flight Plan with no observationRequests
-	fpCommand := Commands.FlightPlanCommand{
+	fpCommand := Commands.CreateFlightPlanCommand{
 		Name:      "Flight Plan no requests",
 		UserId:    1,
 		MissionId: 1,
@@ -181,7 +181,7 @@ func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegrationErrorObserv
 	writer := multipart.NewWriter(body)
 	fpPart, _ := writer.CreateFormField("flightPlan")
 	// New flight Plan
-	fpCommand := Commands.FlightPlanCommand{
+	fpCommand := Commands.CreateFlightPlanCommand{
 		Name:      "Test Flight Plan error requests",
 		UserId:    1,
 		MissionId: 1,
@@ -192,7 +192,7 @@ func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegrationErrorObserv
 	// With two observation request
 	// observation request 1
 	orPart1, _ := writer.CreateFormField("requestList")
-	orCommand := Commands.ObservationRequestCommand{
+	orCommand := Commands.CreateObservationRequestCommand{
 		OType: "this should give an error",
 	}
 	orJson, _ := json.Marshal(orCommand)

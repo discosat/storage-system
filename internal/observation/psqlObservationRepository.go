@@ -2,19 +2,19 @@ package observation
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/discosat/storage-system/internal/Commands"
 	"github.com/discosat/storage-system/internal/objectStore"
-	"github.com/jmoiron/sqlx"
 	"log"
 )
 
 type PsqlObservationRepository struct {
-	db          *sqlx.DB
+	db          *sql.DB
 	objectStore objectStore.IDataStore
 }
 
-func NewPsqlObservationRepository(db *sqlx.DB, store objectStore.IDataStore) ObservationRepository {
+func NewPsqlObservationRepository(db *sql.DB, store objectStore.IDataStore) ObservationRepository {
 	return PsqlObservationRepository{db: db, objectStore: store}
 }
 

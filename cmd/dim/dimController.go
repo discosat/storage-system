@@ -36,7 +36,7 @@ func (d DimController) GetFlightPlan(c *gin.Context) {
 		return
 	}
 
-	flightPLan, err := d.dimService.handleGetFlightPlan(fpId)
+	flightPlan, err := d.dimService.handleGetFlightPlan(fpId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			errorAbortMessage(c, http.StatusNotFound, fmt.Errorf("no flight plan with id: %v", fpId))
@@ -45,13 +45,13 @@ func (d DimController) GetFlightPlan(c *gin.Context) {
 		errorAbortMessage(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"flightPlan": flightPLan})
+	c.JSON(http.StatusOK, gin.H{"flightPlan": flightPlan})
 	return
 }
 
 func (d DimController) CreateFlightPlan(c *gin.Context) {
 
-	var flightPlan Commands.FlightPlanCommand
+	var flightPlan Commands.CreateFlightPlanCommand
 	err := json.Unmarshal([]byte(c.PostForm("flightPlan")), &flightPlan)
 	if err != nil {
 		errorAbortMessage(c, http.StatusBadRequest, err)
@@ -59,9 +59,9 @@ func (d DimController) CreateFlightPlan(c *gin.Context) {
 	}
 
 	rList := c.PostFormArray("requestList")
-	var orList []Commands.ObservationRequestCommand
+	var orList []Commands.CreateObservationRequestCommand
 	for _, r := range rList {
-		var or Commands.ObservationRequestCommand
+		var or Commands.CreateObservationRequestCommand
 		err = json.Unmarshal([]byte(r), &or)
 		if err != nil {
 			slog.Warn(fmt.Sprintf("Could not bind request to ObservationRequuest: %v", err))
@@ -85,6 +85,22 @@ func (d DimController) CreateFlightPlan(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"flightPlanId": fpId})
+}
+
+func (d DimController) UpdateFlightPlan(c *gin.Context) {
+	// TODO Check permissions!!!!!!!!
+	var flightPlan observationRequest.FlightPlanAggregate
+	err := json.Unmarshal([]byte(c.PostForm("flightPlan")), &flightPlan)
+	if err != nil {
+		errorAbortMessage(c, http.StatusBadRequest, err)
+		return
+	}
+	id, err := d.dimService.handleUpdateFlightPlan(flightPlan)
+	c.JSON(http.StatusOK, gin.H{"flightPlanId": id})
+}
+
+func (d DimController) DeleteFlightPlan(c *gin.Context) {
+
 }
 
 func (d DimController) UploadBatch(c *gin.Context) {

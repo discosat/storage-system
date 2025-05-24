@@ -4,6 +4,7 @@ const (
 	_ = iota
 	FlightPlanParseError
 	ObservationRequestParseError
+	FlightPlanIsLocked
 )
 
 type ObservationRequestError struct {
