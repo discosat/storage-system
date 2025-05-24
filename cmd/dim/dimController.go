@@ -10,7 +10,6 @@ import (
 	"github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/gin-gonic/gin"
 	"io"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -24,41 +23,6 @@ type DimController struct {
 func NewDimController(dimService DimServiceInterface) *DimController {
 	return &DimController{dimService: dimService}
 }
-
-func (d DimController) UploadImage(c *gin.Context) {
-	//Binding POST data
-	file, err := c.FormFile("file")
-	if err != nil {
-		errorAbortMessage(c, http.StatusBadRequest, err)
-		return
-	}
-	oFile, err := file.Open()
-	//defer oFile.Close()
-	if err != nil {
-		errorAbortMessage(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	readCloser, ok := oFile.(io.ReadCloser)
-	if !ok {
-		// Handle the error, file does not implement io.ReadCloser
-		return
-	}
-
-	observationId, err := d.dimService.handleUploadImage(&readCloser, file.Filename, file.Size)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			errorAbortMessage(c, http.StatusNotFound, err)
-			return
-		}
-		errorAbortMessage(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"observation": observationId})
-	return
-}
-
 func (d DimController) GetFlightPlan(c *gin.Context) {
 	id := c.Query("id")
 	if id == "" {
@@ -121,15 +85,6 @@ func (d DimController) CreateFlightPlan(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"flightPlanId": fpId})
-}
-
-func (d DimController) Test(c *gin.Context) {
-	or, err := d.dimService.test(c)
-	if err != nil {
-		log.Fatalf("Pis og papir")
-	}
-	c.JSON(http.StatusCreated, or)
-	return
 }
 
 func (d DimController) UploadBatch(c *gin.Context) {

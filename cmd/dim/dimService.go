@@ -23,7 +23,6 @@ type DimServiceInterface interface {
 	handleUploadBatch(archive *zip.ReadCloser) error
 	handleGetFlightPlan(id int) (FlightPlanEntity, error)
 	handleCreateFlightPlan(flightPlan FlightPlanCommand, requestList []ObservationRequestCommand) (int, error)
-	test(c *gin.Context) (ObservationRequestAggregate, error)
 }
 
 type DimService struct {
