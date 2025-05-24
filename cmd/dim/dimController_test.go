@@ -119,7 +119,7 @@ func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegration() {
 	orJson, _ := json.Marshal(orCommand)
 	orPart1.Write(orJson)
 
-	// observation request 1
+	// observation request 2
 	orPart2, _ := writer.CreateFormField("requestList")
 	orCommand = Commands.ObservationRequestCommand{
 		OType: "other",
@@ -139,6 +139,77 @@ func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegration() {
 	// ----- THEN -----
 	assert.Equal(t, 201, w.Code)
 	assert.Regexp(t, regexp.MustCompile(`{"flightPlanId":[0-9]+}`), string(response))
+	//c.JSON(http.StatusCreated, gin.H)
+}
+
+func (s *DimControllerIntegrationTestSuite) TestFlightPlanNoObservationRequestsIntegration() {
+	t := s.T()
+
+	// ----- GIVEN -----
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	fpPart, _ := writer.CreateFormField("flightPlan")
+	// New flight Plan with no observationRequests
+	fpCommand := Commands.FlightPlanCommand{
+		Name:      "Flight Plan no requests",
+		UserId:    1,
+		MissionId: 1,
+	}
+	fpJson, _ := json.Marshal(fpCommand)
+	fpPart.Write(fpJson)
+	writer.Close()
+
+	// ----- WHEN -----
+	request, _ := http.NewRequest("POST", "/flightPlan", body)
+	request.Header.Set("Content-Type", "multipart/form-data; boundary="+writer.Boundary())
+	//request.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	w := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+	response, _ := io.ReadAll(w.Body)
+
+	// ----- THEN -----
+	assert.Equal(t, 201, w.Code)
+	assert.Regexp(t, regexp.MustCompile(`{"flightPlanId":[0-9]+}`), string(response))
+	//c.JSON(http.StatusCreated, gin.H)
+}
+
+func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegrationErrorObservationRequest() {
+	t := s.T()
+
+	// ----- GIVEN -----
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	fpPart, _ := writer.CreateFormField("flightPlan")
+	// New flight Plan
+	fpCommand := Commands.FlightPlanCommand{
+		Name:      "Test Flight Plan error requests",
+		UserId:    1,
+		MissionId: 1,
+	}
+	fpJson, _ := json.Marshal(fpCommand)
+	fpPart.Write(fpJson)
+
+	// With two observation request
+	// observation request 1
+	orPart1, _ := writer.CreateFormField("requestList")
+	orCommand := Commands.ObservationRequestCommand{
+		OType: "this should give an error",
+	}
+	orJson, _ := json.Marshal(orCommand)
+	orPart1.Write(orJson)
+	writer.Close()
+
+	// ----- WHEN -----
+	request, _ := http.NewRequest("POST", "/flightPlan", body)
+	request.Header.Set("Content-Type", "multipart/form-data; boundary="+writer.Boundary())
+	//request.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	w := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+	response, _ := io.ReadAll(w.Body)
+
+	// ----- THEN -----
+	assert.Equal(t, 400, w.Code)
+	assert.Regexp(t, regexp.MustCompile(`{"error":"Observation request is formatted wrong"}`), string(response))
 	//c.JSON(http.StatusCreated, gin.H)
 }
 

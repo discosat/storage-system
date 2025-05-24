@@ -89,7 +89,7 @@ func (p PsqlObservationRequestRepository) CreateFlightPlan(flightPlan Commands.F
 		_, qErr := tx.Exec("INSERT INTO observation_request (flight_plan_id, type) VALUES ($1, $2)", fpId, request.OType)
 		if qErr != nil {
 			slog.Error(fmt.Sprintf("Formatting eror of observation request: %v. \n Error: %v", request, err))
-			return -1, err
+			return -1, &ObservationRequestError{msg: "Observation request is formatted wrong", code: ObservationRequestParseError}
 		}
 	}
 	err = tx.Commit()

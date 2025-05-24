@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/discosat/storage-system/internal/Commands"
+	"github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/gin-gonic/gin"
 	"io"
 	"log"
@@ -110,6 +111,11 @@ func (d DimController) CreateFlightPlan(c *gin.Context) {
 
 	fpId, err := d.dimService.handleCreateFlightPlan(flightPlan, orList)
 	if err != nil {
+		if err.(*observationRequest.ObservationRequestError).Code() == observationRequest.ObservationRequestParseError {
+			slog.Error(fmt.Sprintf("One or more observation requests are formatted wrong: %v", orList))
+			errorAbortMessage(c, http.StatusBadRequest, err)
+			return
+		}
 		slog.Error(fmt.Sprintf("Could not create flight plan: %v, wiht observation requests: %v, %v", flightPlan, orList, err))
 		errorAbortMessage(c, http.StatusInternalServerError, err)
 		return
