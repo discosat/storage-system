@@ -13,7 +13,7 @@ import (
 func Start() {
 	g := gin.Default()
 
-	g.GET("/search-images", RequestHandler)
+	g.GET("/images", RequestHandler)
 
 	g.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
