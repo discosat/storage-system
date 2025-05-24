@@ -152,23 +152,23 @@ func (p PsqlObservationRequestRepository) UpdateFlightPlan(flightPlan FlightPlan
 	}
 
 	for _, request := range flightPlan.ObservationRequests {
-		deleteIds[request.Id] = false
+		delete(deleteIds, request.Id)
 	}
-
+	// Update
 	for _, request := range flightPlan.ObservationRequests {
-		if deleteIds[request.Id] {
-			_, err := tx.Exec("DELETE FROM observation_request WHERE id = $1", request.Id)
-			if err != nil {
-				return -1, err
-			}
-		} else {
-			_, err := tx.Exec("UPDATE observation_request SET type = $1 WHERE id = $2", request.OType, request.Id)
-			if err != nil {
-				return 0, err
-			}
+		_, err := tx.Exec("UPDATE observation_request SET type = $1 WHERE id = $2", request.OType, request.Id)
+		if err != nil {
+			return 0, err
 		}
-
 	}
+	for key, _ := range deleteIds {
+		_, err := tx.Exec("DELETE FROM observation_request WHERE id = $1", key)
+		if err != nil {
+			// TODO kan f.eks. kommer herned ved foreign key constrain (dvs. der eksisterer en observationer der bruger den)
+			return -1, err
+		}
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return -1, err
