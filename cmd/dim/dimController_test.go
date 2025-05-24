@@ -16,6 +16,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/modules/minio"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"io"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -47,7 +48,10 @@ func (s *DimControllerIntegrationTestSuite) SetupSuite() {
 	}
 	s.minioContainer = minioContainer
 	minioStore := objectStore.NewMinioStore()
-
+	err = minioStore.CreateBucket("testbucket")
+	if err != nil {
+		s.T().Fatal(err)
+	}
 	router := ConfigureRouter(
 		NewDimController(
 			NewDimService(
@@ -60,11 +64,33 @@ func (s *DimControllerIntegrationTestSuite) SetupSuite() {
 	s.dimRouter = router
 }
 
-func TestDimControllerTestSuite(t *testing.T) {
+func TestDimControllerIntegrationTestSuite(t *testing.T) {
 	suite.Run(t, new(DimControllerIntegrationTestSuite))
 }
 
-func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegration() {
+func (s *DimControllerIntegrationTestSuite) TestGetFlightPlanIntegration() {
+	t := s.T()
+	request, _ := http.NewRequest("GET", "/flightPlan?id=1", nil)
+	w := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+	response, _ := io.ReadAll(w.Body)
+
+	var jsonMap map[string]observationRequest.FlightPlanAggregate
+	err := json.Unmarshal(response, &jsonMap)
+	if err != nil {
+		log.Fatal("Could not bind flightPlan")
+	}
+	flightPlan := jsonMap["flightPlan"]
+
+	// ----- THEN -----
+	assert.Equal(t, 200, w.Code)
+	assert.NotNil(t, flightPlan)
+	assert.Equal(t, flightPlan.Name, "flight plan 1")
+	assert.NotNil(t, flightPlan.ObservationRequests)
+	assert.Equal(t, flightPlan.ObservationRequests[0].OType, "image")
+}
+
+func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanIntegration() {
 	t := s.T()
 
 	// ----- GIVEN -----
@@ -80,7 +106,7 @@ func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegration() {
 	fpJson, _ := json.Marshal(fpCommand)
 	fpPart.Write(fpJson)
 
-	// With two observation request
+	// With two observation requests
 	// observation request 1
 	orPart1, _ := writer.CreateFormField("requestList")
 	orCommand := Commands.CreateObservationRequestCommand{
@@ -112,7 +138,7 @@ func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegration() {
 	//c.JSON(http.StatusCreated, gin.H)
 }
 
-func (s *DimControllerIntegrationTestSuite) TestFlightPlanNoObservationRequestsIntegration() {
+func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanNoObservationRequestsIntegration() {
 	t := s.T()
 
 	// ----- GIVEN -----
@@ -143,7 +169,7 @@ func (s *DimControllerIntegrationTestSuite) TestFlightPlanNoObservationRequestsI
 	//c.JSON(http.StatusCreated, gin.H)
 }
 
-func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegrationErrorObservationRequest() {
+func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanIntegrationErrorObservationRequest() {
 	t := s.T()
 
 	// ----- GIVEN -----
@@ -182,3 +208,66 @@ func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegrationErrorObserv
 	assert.Regexp(t, regexp.MustCompile(`{"error":"Observation request is formatted wrong"}`), string(response))
 	//c.JSON(http.StatusCreated, gin.H)
 }
+
+func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanIntegration() {
+	// -----GIVEN-----
+	//flight plan 2
+	t := s.T()
+	request, _ := http.NewRequest("GET", "/flightPlan?id=2", nil)
+	w := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+	response, _ := io.ReadAll(w.Body)
+
+	var jsonMap map[string]observationRequest.FlightPlanAggregate
+	err := json.Unmarshal(response, &jsonMap)
+	if err != nil {
+		log.Fatal("Could not bind flightPlan")
+	}
+	flightPlan2 := jsonMap["flightPlan"]
+
+	// ----- EXPECT -----
+	assert.Equal(t, flightPlan2.Name, "flight plan 2")
+	assert.Equal(t, flightPlan2.ObservationRequests[0].OType, "image")
+
+	//----- WHEN -----
+	//altered
+	newFpName := "Nyt navn 2"
+	newOrType := "number"
+	flightPlan2.Name = newFpName
+	flightPlan2.ObservationRequests[0].OType = newOrType
+
+	//----- AND -----
+	//requested
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	FpPart, _ := writer.CreateFormField("flightPlan")
+	// New flight Plan
+	FpJson, err := json.Marshal(flightPlan2)
+	_, err = FpPart.Write(FpJson)
+	err = writer.Close()
+
+	request, err = http.NewRequest("PUT", "/flightPlan", body)
+	request.Header.Set("Content-Type", "multipart/form-data; boundary="+writer.Boundary())
+	notNeeded := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(notNeeded, request)
+	// ----- THEN -----
+	//when Retrieved again
+	request, _ = http.NewRequest("GET", "/flightPlan?id=2", nil)
+	w = httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+	response, _ = io.ReadAll(w.Body)
+
+	//var jsonMap map[string]observationRequest.FlightPlanAggregate
+	err = json.Unmarshal(response, &jsonMap)
+	if err != nil {
+		log.Fatal("Could not bind flightPlan")
+	}
+	updatedFlightPlan := jsonMap["flightPlan"]
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, updatedFlightPlan.Name, newFpName)
+	assert.Equal(t, updatedFlightPlan.ObservationRequests[0].OType, newOrType)
+
+}
+
+// TODO husk også hentning af image_series

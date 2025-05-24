@@ -28,9 +28,6 @@ func SetupPostgresContainer(ctx context.Context) (*postgres.PostgresContainer, e
 }
 func SetupMinioContainer(ctx context.Context) (*minio.MinioContainer, error) {
 	minioContainer, err := minio.Run(ctx, "minio/minio:RELEASE.2025-04-22T22-12-26Z")
-	if err != nil {
-		return nil, err
-	}
 	minioUrl, _ := minioContainer.ConnectionString(ctx)
 	os.Setenv("MINIO_ENDPOINT", minioUrl)
 	os.Setenv("MINIO_ACCESS_KEY_ID", minioContainer.Username)

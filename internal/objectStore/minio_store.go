@@ -54,6 +54,11 @@ func (m MinioStore) DeleteObservation(imgRef string, bucketName string) (bool, e
 	return true, nil
 }
 
+func (m MinioStore) CreateBucket(bucketName string) error {
+	err := m.minioClient.MakeBucket(context.Background(), bucketName, minio.MakeBucketOptions{Region: "eu-north-0", ObjectLocking: false})
+	return err
+}
+
 func NewMinioStore() *MinioStore {
 	endpoint := os.Getenv("MINIO_ENDPOINT")
 	accessKeyID := os.Getenv("MINIO_ACCESS_KEY_ID")

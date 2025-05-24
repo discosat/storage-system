@@ -38,7 +38,7 @@ func main() {
 	// Initialize DIM and DAM services
 	//go dam.ConfigureRouter()
 	dimRouter := ConfigDimRouter(db, store)
-	go dimRouter.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+	go dimRouter.Run("0.0.0.0:8080") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 
 	slog.Info("DIM-DAM up and running")
 

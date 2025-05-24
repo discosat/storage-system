@@ -31,6 +31,7 @@ CREATE TABLE flight_plan
     name       VARCHAR(255) UNIQUE,
     user_id    INT                                    NOT NULL,
     mission_id INT                                    NOT NULL,
+    locked     boolean                  DEFAULT FALSE NOT NULL,
     CONSTRAINT fk_mission FOREIGN KEY (mission_id) REFERENCES mission (id)
 );
 
@@ -49,7 +50,6 @@ CREATE TABLE observation_request
     updated_at     TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     flight_plan_id INT                                    NOT NULL,
     type           observation_type,
-    locked         boolean                  DEFAULT FALSE NOT NULL,
     CONSTRAINT fk_flight_plan FOREIGN KEY (flight_plan_id) REFERENCES flight_plan (id) ON DELETE CASCADE
 );
 
@@ -134,8 +134,8 @@ CREATE TABLE observation_metadata
     gnss_time      INT,
     gnss_speed     FLOAT,
     gnss_altitude  FLOAT,
-    gnss_cource    FLOAT,
-    CONSTRAINT fk_observation FOREIGN KEY (observation_id) REFERENCES observation(id) ON DELETE CASCADE
+    gnss_course    FLOAT,
+    CONSTRAINT fk_observation FOREIGN KEY (observation_id) REFERENCES observation (id) ON DELETE CASCADE
 );
 
 CREATE TRIGGER updated_at_trigger
