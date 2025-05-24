@@ -5,6 +5,7 @@ const (
 	FlightPlanParseError
 	ObservationRequestParseError
 	FlightPlanIsLocked
+	FlightPlanNotFound
 )
 
 type ObservationRequestError struct {

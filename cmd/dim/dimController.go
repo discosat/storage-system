@@ -114,7 +114,12 @@ func (d DimController) DeleteFlightPlan(c *gin.Context) {
 
 	_, err = d.dimService.handleDeleteFlightPlan(fpId)
 	if err != nil {
+		if err.(*observationRequest.ObservationRequestError).Code() == observationRequest.FlightPlanNotFound {
+			errorAbortMessage(c, http.StatusBadRequest, err)
+			return
+		}
 		errorAbortMessage(c, http.StatusInternalServerError, fmt.Errorf("error in deleting flight plan wtih id: %v: %v", fpId, err))
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("flight plan: %v has been deleted", fpId)})
@@ -179,6 +184,6 @@ func (d DimController) UploadBatch(c *gin.Context) {
 //}
 
 func errorAbortMessage(c *gin.Context, statusCode int, err error) {
-	slog.Error(fmt.Sprint(err))
-	c.JSON(statusCode, gin.H{"error": fmt.Sprint(err)})
+	slog.Error(fmt.Sprint(err.Error()))
+	c.JSON(statusCode, gin.H{"error": fmt.Sprint(err.Error())})
 }

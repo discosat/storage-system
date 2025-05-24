@@ -180,10 +180,20 @@ func (p PsqlObservationRequestRepository) DeleteFlightPlan(id int) (bool, error)
 	if err != nil {
 		return false, err
 	}
-	_, err = tx.Exec("DELETE FROM flight_plan WHERE id = $1", id)
+	result, err := tx.Exec("DELETE FROM flight_plan WHERE id = $1", id)
 	if err != nil {
 		return false, err
 	}
+
+	deletedRows, err := result.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+
+	if deletedRows == 0 {
+		return false, &ObservationRequestError{msg: fmt.Sprintf("No flight plan with id: %v found. Nothing deleted", id), code: FlightPlanNotFound}
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return false, err
