@@ -8,12 +8,12 @@ import (
 
 func TestExtractMetadata(t *testing.T) {
 
-	rawWithMetadata, err := os.ReadFile("./testImages/forgor.jpg")
+	rawWithMetadata, err := os.ReadFile("./testData/forgor.jpg")
 	if err != nil {
 		log.Println("Files not read")
 		t.Fatal(err)
 	}
-	rawNoMetadata, err := os.ReadFile("./testImages/Oense.tif")
+	rawNoMetadata, err := os.ReadFile("./testData/Oense.tif")
 	if err != nil {
 		log.Println("Files not read")
 		t.Fatal(err)

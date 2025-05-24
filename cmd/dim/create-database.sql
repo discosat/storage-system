@@ -133,7 +133,7 @@ CREATE TABLE observation_metadata
     gnss_speed     FLOAT,
     gnss_altitude  FLOAT,
     gnss_cource    FLOAT,
-    CONSTRAINT fk_measurement FOREIGN KEY (observation_id) REFERENCES observation (id)
+    CONSTRAINT fk_observation FOREIGN KEY (observation_id) REFERENCES observation (id)
 );
 
 CREATE TRIGGER updated_at_trigger

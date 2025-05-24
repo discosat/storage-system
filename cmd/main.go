@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/discosat/storage-system/cmd/dam"
 	"github.com/discosat/storage-system/cmd/dim"
 	"github.com/discosat/storage-system/internal/objectStore"
 	"github.com/discosat/storage-system/internal/observation"
@@ -28,12 +27,12 @@ func main() {
 	defer db.Close()
 
 	//Initialize environment variables
-	err = godotenv.Load("cmd/dam/.env")
-	if err != nil {
-		log.Fatalf("NewMinioStore: Cant find env - %v", err)
-	}
+	//err = godotenv.Load("cmd/dam/.env")
+	//if err != nil {
+	//	log.Fatalf("NewMinioStore: Cant find env - %v", err)
+	//}
 	// Initialize the database connection
-	dam.InitDB()
+	//dam.InitDB()
 
 	// Initialize DIM and DAM services
 	//go dam.ConfigureRouter()
