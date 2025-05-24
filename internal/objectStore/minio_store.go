@@ -54,7 +54,7 @@ func (m MinioStore) DeleteObservation(imgRef string, bucketName string) (bool, e
 	return true, nil
 }
 
-func NewMinioStore() MinioStore {
+func NewMinioStore() *MinioStore {
 	endpoint := os.Getenv("MINIO_ENDPOINT")
 	accessKeyID := os.Getenv("MINIO_ACCESS_KEY_ID")
 	secretAccessKey := os.Getenv("MINIO_SECRET_ACCESS_KEY")
@@ -78,5 +78,5 @@ func NewMinioStore() MinioStore {
 		log.Fatalf("Could not connect to Minio instance. Double check that it is up and running, and that you have provided correct credentials: %v", err)
 	}
 
-	return MinioStore{minioClient: minioC}
+	return &MinioStore{minioClient: minioC}
 }

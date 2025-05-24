@@ -1,6 +1,7 @@
 package dim
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -34,5 +35,6 @@ func TestExtractMetadata(t *testing.T) {
 		if (err != nil) != testCase.wantError {
 			t.Errorf("extractMetadata() error = %v, wantError = %v", err, testCase.wantError)
 		}
+		t.Log(fmt.Sprintf("Test: %v, success", t.Name()))
 	}
 }

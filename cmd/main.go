@@ -7,6 +7,7 @@ import (
 	"github.com/discosat/storage-system/internal/objectStore"
 	"github.com/discosat/storage-system/internal/observation"
 	"github.com/discosat/storage-system/internal/observationRequest"
+	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"log"
 	"log/slog"
@@ -36,7 +37,16 @@ func main() {
 
 	// Initialize DIM and DAM services
 	//go dam.ConfigureRouter()
-	dimRouter := dim.ConfigureRouter(
+	dimRouter := ConfigDimRouter(db, store)
+	go dimRouter.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
+
+	slog.Info("DIM-DAM up and running")
+
+	select {}
+}
+
+func ConfigDimRouter(db *sql.DB, store objectStore.IDataStore) *gin.Engine {
+	return dim.ConfigureRouter(
 		dim.NewDimController(
 			dim.NewDimService(
 				observation.NewPsqlObservationRepository(db, store),
@@ -44,11 +54,6 @@ func main() {
 			),
 		),
 	)
-	go dimRouter.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
-
-	slog.Info("DIM-DAM up and running")
-
-	select {}
 }
 
 func ConfigDatabase() *sql.DB {

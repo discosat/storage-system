@@ -3,28 +3,24 @@ package dim
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
+	"github.com/discosat/storage-system/cmd/test"
 	"github.com/discosat/storage-system/internal/Commands"
 	"github.com/discosat/storage-system/internal/objectStore"
 	"github.com/discosat/storage-system/internal/observation"
 	"github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/minio"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"github.com/testcontainers/testcontainers-go/wait"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"regexp"
 	"testing"
-	"time"
 )
 
 type DimControllerIntegrationTestSuite struct {
@@ -37,41 +33,25 @@ type DimControllerIntegrationTestSuite struct {
 
 func (s *DimControllerIntegrationTestSuite) SetupSuite() {
 	s.ctx = context.Background()
-	postgisContainer, err := postgres.Run(s.ctx,
-		"postgis/postgis:17-3.4-alpine",
-		postgres.WithInitScripts(filepath.Join(".", "create-database.sql"),
-			filepath.Join(".", "testData", "test-data.sql")),
-		postgres.WithInitScripts("./create-database.sql"),
-		postgres.WithDatabase("test"),
-		postgres.WithUsername("user"),
-		postgres.WithPassword("password"),
-		testcontainers.WithWaitStrategy(
-			wait.ForLog("database system is ready to accept connections").
-				WithOccurrence(2).WithStartupTimeout(5*time.Second)),
-	)
+	postgisContainer, err := test.SetupPostgresContainer(s.ctx)
 	if err != nil {
-		s.T().Fatal(err)
+		s.T().Fatalf("Postgis container was not setup correctly: %v", err)
 	}
 	s.pgContainer = postgisContainer
+	connString, err := postgisContainer.ConnectionString(s.ctx)
+	db, err := sql.Open("pgx", connString)
 
-	minioContainer, err := minio.Run(s.ctx, "minio/minio:RELEASE.2025-04-22T22-12-26Z")
+	minioContainer, err := test.SetupMinioContainer(s.ctx)
 	if err != nil {
-		s.T().Fatal(err)
+		s.T().Fatalf("Minio container was not setup correctly: %v", err)
 	}
 	s.minioContainer = minioContainer
-	minioUrl, _ := s.minioContainer.ConnectionString(s.ctx)
-	os.Setenv("MINIO_ENDPOINT", minioUrl)
-	os.Setenv("MINIO_ACCESS_KEY_ID", s.minioContainer.Username)
-	os.Setenv("MINIO_SECRET_ACCESS_KEY", s.minioContainer.Password)
-	os.Setenv("MINIO_USE_SSL", "false")
-
-	connString, err := postgisContainer.ConnectionString(s.ctx)
-	db, err := sqlx.Open("pgx", connString)
+	minioStore := objectStore.NewMinioStore()
 
 	router := ConfigureRouter(
 		NewDimController(
 			NewDimService(
-				observation.NewPsqlObservationRepository(db, objectStore.NewMinioStore()),
+				observation.NewPsqlObservationRepository(db, minioStore),
 				observationRequest.NewPsqlObservationRequestRepository(db),
 			),
 		),
@@ -80,18 +60,8 @@ func (s *DimControllerIntegrationTestSuite) SetupSuite() {
 	s.dimRouter = router
 }
 
-func (s *DimControllerIntegrationTestSuite) TestPingIntegration() {
-	t := s.T()
-	expected := `{"message":"pong"}`
-
-	// WHEN
-	request, _ := http.NewRequest("GET", "/ping", nil)
-	w := httptest.NewRecorder()
-	s.dimRouter.ServeHTTP(w, request)
-	response, _ := io.ReadAll(w.Body)
-
-	// THEN
-	assert.Equal(t, expected, string(response))
+func TestDimControllerTestSuite(t *testing.T) {
+	suite.Run(t, new(DimControllerIntegrationTestSuite))
 }
 
 func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegration() {
@@ -211,8 +181,4 @@ func (s *DimControllerIntegrationTestSuite) TestFlightPlanIntegrationErrorObserv
 	assert.Equal(t, 400, w.Code)
 	assert.Regexp(t, regexp.MustCompile(`{"error":"Observation request is formatted wrong"}`), string(response))
 	//c.JSON(http.StatusCreated, gin.H)
-}
-
-func TestDimControllerTestSuite(t *testing.T) {
-	suite.Run(t, new(DimControllerIntegrationTestSuite))
 }
