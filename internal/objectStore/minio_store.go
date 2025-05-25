@@ -30,7 +30,7 @@ func (m MinioStore) SaveFile(fileInfo *zip.File, openFile io.ReadCloser, bucketN
 	return status.Key, nil
 }
 
-func (m MinioStore) SaveObservation(observationCommand Commands.ObservationCommand) (string, error) {
+func (m MinioStore) SaveObservation(observationCommand Commands.CreateObservationCommand) (string, error) {
 	status, err := m.minioClient.PutObject(context.Background(), observationCommand.Bucket, filepath.ToSlash(observationCommand.FlightPlanName+"/"+observationCommand.FileName), observationCommand.File, observationCommand.FileSize, minio.PutObjectOptions{})
 	if err != nil {
 		return "", fmt.Errorf("error in upload to minio: %v", err)

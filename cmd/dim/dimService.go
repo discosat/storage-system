@@ -62,7 +62,11 @@ func (d DimService) handleUploadImage(file *io.ReadCloser, fileName string, file
 	}
 
 	fileReader := bytes.NewReader(raw)
-	observationCommand := Commands.ObservationCommand{File: fileReader, FileName: fileName, FileSize: fileSize, Bucket: observationRequestAggr.Mission.Bucket, FlightPlanName: observationRequestAggr.FlightPlan.Name, ObservationRequestId: observationRequestAggr.ObservationRequest.Id}
+	observationCommand := Commands.CreateObservationCommand{File: fileReader, FileName: fileName, FileSize: fileSize,
+		Bucket:               observationRequestAggr.Bucket,
+		FlightPlanName:       observationRequestAggr.FlightPlanName,
+		ObservationRequestId: observationRequestAggr.ObservationRequest.Id,
+		ObservationType:      observationRequestAggr.ObservationRequest.OType}
 	// Saves image
 	observationId, err := d.observationRepository.CreateObservation(observationCommand, &metadata)
 	if err != nil {

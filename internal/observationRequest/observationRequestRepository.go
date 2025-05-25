@@ -1,7 +1,7 @@
 package observationRequest
 
 type ObservationRequestRepository interface {
-	GetObservationRequest(id int) (ObservationRequestAggregate, error)
+	GetObservationRequest(id int) (ObservationRequestCommand, error)
 	GetObservationRequestById(id int) (ObservationRequest, error)
 	CreateObservationRequest(flightPLanId int, camera string)
 	GetFlightPlanById(id int) (FlightPlanAggregate, error)

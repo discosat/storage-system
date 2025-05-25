@@ -10,9 +10,9 @@ type ObservationRequest struct {
 	FlightPlanId int       `json:"flight_plan_id"`
 }
 
-type ObservationRequestAggregate struct {
-	FlightPlan         FlightPlanDTO         `json:"flightPlan"`
-	Mission            MissionDTO            `json:"mission"`
+type ObservationRequestCommand struct {
+	FlightPlanName     string
+	Bucket             string
 	ObservationRequest ObservationRequestDTO `json:"observationRequest"`
 }
 

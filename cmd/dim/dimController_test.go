@@ -145,7 +145,7 @@ func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanNoObservationReq
 	fpPart, _ := writer.CreateFormField("flightPlan")
 	// New flight Plan with no observationRequests
 	flightPlan := observationRequest.FlightPlanAggregate{
-		Name:                "Integration Test Flight Plan",
+		Name:                "Integration Test Flight Plan No Observation Requests",
 		UserId:              1,
 		MissionId:           1,
 		ObservationRequests: nil,
@@ -177,7 +177,7 @@ func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanIntegrationError
 	fpPart, _ := writer.CreateFormField("flightPlan")
 	// New flight Plan
 	flightPlan := observationRequest.FlightPlanAggregate{
-		Name:      "Integration Test Flight Plan",
+		Name:      "Integration Test Flight Plan With Error",
 		UserId:    1,
 		MissionId: 1,
 		ObservationRequests: []observationRequest.ObservationRequestDTO{

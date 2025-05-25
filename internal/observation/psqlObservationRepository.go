@@ -23,7 +23,7 @@ func (p PsqlObservationRepository) GetObservation(id int) (Observation, error) {
 	panic("implement me")
 }
 
-func (p PsqlObservationRepository) CreateObservation(observationCommand Commands.ObservationCommand, metadata *ObservationMetadata) (int, error) {
+func (p PsqlObservationRepository) CreateObservation(observationCommand Commands.CreateObservationCommand, metadata *ObservationMetadata) (int, error) {
 
 	tx, err := p.db.BeginTx(context.Background(), nil)
 	if err != nil {

@@ -15,28 +15,17 @@ func NewPsqlObservationRequestRepository(db *sql.DB) ObservationRequestRepositor
 	return &PsqlObservationRequestRepository{db: db}
 }
 
-func (p PsqlObservationRequestRepository) GetObservationRequest(id int) (ObservationRequestAggregate, error) {
+func (p PsqlObservationRequestRepository) GetObservationRequest(id int) (ObservationRequestCommand, error) {
 
-	var observationRequestEntity ObservationRequestAggregate
-	err := p.db.QueryRow("SELECT o_r.id, o_r.type, fp.id, fp.name, fp.user_id, m.id, m.name, m.bucket FROM observation_request o_r INNER JOIN public.flight_plan fp ON o_r.flight_plan_id = fp.id INNER JOIN public.mission m ON m.id = fp.mission_id WHERE o_r.id = $1", id).
-		Scan(&observationRequestEntity.ObservationRequest.Id,
-			//&observationRequestEntity.ObservationRequest.CreatedAt,
-			//&observationRequestEntity.ObservationRequest.UpdatedAt,
-			//&observationRequestEntity.ObservationRequest.FlightPlanId,
-			&observationRequestEntity.ObservationRequest.OType,
-			&observationRequestEntity.FlightPlan.Id,
-			//&observationRequestEntity.FlightPlanEntity.CreatedAt,
-			//&observationRequestEntity.FlightPlanEntity.UpdatedAt,
-			&observationRequestEntity.FlightPlan.Name,
-			&observationRequestEntity.FlightPlan.UserId,
-			//&observationRequestEntity.FlightPlanEntity.MissionId,
-			&observationRequestEntity.Mission.Id,
-			//&observationRequestEntity.Mission.CreatedAt,
-			//&observationRequestEntity.Mission.UpdatedAt,
-			&observationRequestEntity.Mission.Name,
-			&observationRequestEntity.Mission.Bucket)
+	var observationRequest ObservationRequestCommand
+	err := p.db.QueryRow("SELECT o_r.id, o_r.type, fp.name, m.bucket FROM observation_request o_r INNER JOIN public.flight_plan fp ON o_r.flight_plan_id = fp.id INNER JOIN public.mission m ON m.id = fp.mission_id WHERE o_r.id = $1", id).
+		Scan(&observationRequest.ObservationRequest.Id,
+			&observationRequest.ObservationRequest.OType,
+			&observationRequest.FlightPlanName,
+			&observationRequest.Bucket,
+		)
 
-	return observationRequestEntity, err
+	return observationRequest, err
 }
 
 func (p PsqlObservationRequestRepository) GetMissionById(id int) (Mission, error) {
