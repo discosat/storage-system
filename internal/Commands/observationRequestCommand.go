@@ -1,6 +1,9 @@
 package Commands
 
-type ObservationRequestCommand struct {
+type CreateObservationRequestCommand struct {
+	OType string `json:"o_type"`
+}
+type UpdateObservationRequestCommand struct {
 	Id    int    `json:"id"`
 	OType string `json:"o_type"`
 }

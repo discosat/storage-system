@@ -8,7 +8,7 @@ import (
 
 type IDataStore interface {
 	SaveFile(fileInfo *zip.File, openFile io.ReadCloser, bucketName string) (string, error)
-	SaveImage(observationCommand Commands.ObservationCommand) (string, error)
+	SaveObservation(observationCommand Commands.ObservationCommand) (string, error)
 	BucketExists(bucketName string) (bool, error)
-	DeleteImage(imgRef string, bucketName string) (bool, error)
+	DeleteObservation(imgRef string, bucketName string) (bool, error)
 }
