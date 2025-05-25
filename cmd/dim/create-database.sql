@@ -31,7 +31,7 @@ CREATE TABLE flight_plan
     name       VARCHAR(255) UNIQUE,
     user_id    INT                                    NOT NULL,
     mission_id INT                                    NOT NULL,
-    locked     boolean                  DEFAULT FALSE NOT NULL,
+    locked     BOOLEAN                  DEFAULT FALSE NOT NULL,
 --     flight_plan_reference VARCHAR(255) UNIQUE                    NOT NULL, -- Can reference a potentially uploaded flight plan sheet
     CONSTRAINT fk_mission FOREIGN KEY (mission_id) REFERENCES mission (id)
 );

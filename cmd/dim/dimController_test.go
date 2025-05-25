@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/discosat/storage-system/cmd/test"
-	"github.com/discosat/storage-system/internal/Commands"
 	"github.com/discosat/storage-system/internal/objectStore"
 	"github.com/discosat/storage-system/internal/observation"
 	"github.com/discosat/storage-system/internal/observationRequest"
@@ -145,12 +144,13 @@ func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanNoObservationReq
 	writer := multipart.NewWriter(body)
 	fpPart, _ := writer.CreateFormField("flightPlan")
 	// New flight Plan with no observationRequests
-	fpCommand := Commands.CreateFlightPlanCommand{
-		Name:      "Flight Plan no requests",
-		UserId:    1,
-		MissionId: 1,
+	flightPlan := observationRequest.FlightPlanAggregate{
+		Name:                "Integration Test Flight Plan",
+		UserId:              1,
+		MissionId:           1,
+		ObservationRequests: nil,
 	}
-	fpJson, _ := json.Marshal(fpCommand)
+	fpJson, _ := json.Marshal(flightPlan)
 	fpPart.Write(fpJson)
 	writer.Close()
 
@@ -176,22 +176,17 @@ func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanIntegrationError
 	writer := multipart.NewWriter(body)
 	fpPart, _ := writer.CreateFormField("flightPlan")
 	// New flight Plan
-	fpCommand := Commands.CreateFlightPlanCommand{
-		Name:      "Test Flight Plan error requests",
+	flightPlan := observationRequest.FlightPlanAggregate{
+		Name:      "Integration Test Flight Plan",
 		UserId:    1,
 		MissionId: 1,
+		ObservationRequests: []observationRequest.ObservationRequestDTO{
+			{Id: 40, OType: "this should give an error"},
+			{Id: 41, OType: "other"},
+		},
 	}
-	fpJson, _ := json.Marshal(fpCommand)
+	fpJson, _ := json.Marshal(flightPlan)
 	fpPart.Write(fpJson)
-
-	// With two observation request
-	// observation request 1
-	orPart1, _ := writer.CreateFormField("requestList")
-	orCommand := Commands.CreateObservationRequestCommand{
-		OType: "this should give an error",
-	}
-	orJson, _ := json.Marshal(orCommand)
-	orPart1.Write(orJson)
 	writer.Close()
 
 	// ----- WHEN -----
