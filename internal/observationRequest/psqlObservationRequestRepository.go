@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/discosat/storage-system/internal/Commands"
 	"log/slog"
 )
 
@@ -73,9 +72,9 @@ func (p PsqlObservationRequestRepository) GetFlightPlanById(id int) (FlightPlanA
 	return flightPlan, nil
 }
 
-func (p PsqlObservationRequestRepository) CreateFlightPlan(flightPlan Commands.CreateFlightPlanCommand, requestList []Commands.CreateObservationRequestCommand) (int, error) {
+func (p PsqlObservationRequestRepository) CreateFlightPlan(flightPlan FlightPlanAggregate) (int, error) {
 
-	slog.Info(fmt.Sprintf("Creating a flightplan: %v, for missionId: %v, with observation requests: %v", flightPlan.Name, flightPlan.MissionId, requestList))
+	slog.Info(fmt.Sprintf("Creating a flightplan: %v, for missionId: %v, with observation requests: %v", flightPlan.Name, flightPlan.MissionId, flightPlan.ObservationRequests))
 	tx, err := p.db.BeginTx(context.Background(), &sql.TxOptions{})
 	defer tx.Rollback()
 	if err != nil {
@@ -103,8 +102,8 @@ func (p PsqlObservationRequestRepository) CreateFlightPlan(flightPlan Commands.C
 		return -1, err
 	}
 
-	for _, request := range requestList {
-		_, qErr := tx.Exec("INSERT INTO observation_request (flight_plan_id, type) VALUES ($1, $2)", fpId, request.OType)
+	for _, request := range flightPlan.ObservationRequests {
+		_, qErr := tx.Exec("INSERT INTO observation_request (id, flight_plan_id, type) VALUES ($1, $2, $3)", request.Id, fpId, request.OType)
 		if qErr != nil {
 			slog.Error(fmt.Sprintf("Formatting eror of observation request: %v. \n Error: %v", request, err))
 			return -1, &ObservationRequestError{msg: "Observation request is formatted wrong", code: ObservationRequestParseError}

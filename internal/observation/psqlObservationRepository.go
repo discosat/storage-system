@@ -40,7 +40,7 @@ func (p PsqlObservationRepository) CreateObservation(observationCommand Commands
 	err = tx.QueryRow("INSERT INTO observation(observation_request_id, object_reference, user_id, bucket_name) VALUES ($1, $2, $3, $4) RETURNING id", observationCommand.ObservationRequestId, objectReference, observationCommand.UserId, observationCommand.Bucket).
 		Scan(&observationId)
 	if err != nil {
-		log.Fatalf("err %v", err)
+		return -1, err
 	}
 
 	var metaId int

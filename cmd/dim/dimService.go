@@ -19,7 +19,7 @@ type DimServiceInterface interface {
 	handleUploadImage(file *io.ReadCloser, fileName string, fileSize int64) (int, error)
 	handleUploadBatch(archive *zip.ReadCloser) ([]int, error)
 	handleGetFlightPlan(id int) (observationRequest.FlightPlanAggregate, error)
-	handleCreateFlightPlan(flightPlan Commands.CreateFlightPlanCommand, requestList []Commands.CreateObservationRequestCommand) (int, error)
+	handleCreateFlightPlan(flightPlan observationRequest.FlightPlanAggregate) (int, error)
 	handleUpdateFlightPlan(flightPlan observationRequest.FlightPlanAggregate) (int, error)
 	handleDeleteFlightPlan(id int) (bool, error)
 }
@@ -76,8 +76,8 @@ func (d DimService) handleGetFlightPlan(id int) (observationRequest.FlightPlanAg
 	return d.observationRequestRepository.GetFlightPlanById(id)
 }
 
-func (d DimService) handleCreateFlightPlan(flightPlan Commands.CreateFlightPlanCommand, requestList []Commands.CreateObservationRequestCommand) (int, error) {
-	return d.observationRequestRepository.CreateFlightPlan(flightPlan, requestList)
+func (d DimService) handleCreateFlightPlan(flightPlan observationRequest.FlightPlanAggregate) (int, error) {
+	return d.observationRequestRepository.CreateFlightPlan(flightPlan)
 }
 
 func (d DimService) handleUpdateFlightPlan(flightPlan observationRequest.FlightPlanAggregate) (int, error) {

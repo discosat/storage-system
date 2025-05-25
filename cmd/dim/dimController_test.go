@@ -107,30 +107,20 @@ func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanIntegration() {
 	writer := multipart.NewWriter(body)
 	fpPart, _ := writer.CreateFormField("flightPlan")
 	// New flight Plan
-	fpCommand := Commands.CreateFlightPlanCommand{
-		Name:      "Test Flight Plan",
+	flightPlan := observationRequest.FlightPlanAggregate{
+		Name:      "Integration Test Flight Plan",
 		UserId:    1,
 		MissionId: 1,
+		ObservationRequests: []observationRequest.ObservationRequestDTO{
+			{Id: 40, OType: "image"},
+			{Id: 41, OType: "other"},
+		},
 	}
-	fpJson, _ := json.Marshal(fpCommand)
+	fpJson, _ := json.Marshal(flightPlan)
 	fpPart.Write(fpJson)
 
 	// With two observation requests
 	// observation request 1
-	orPart1, _ := writer.CreateFormField("requestList")
-	orCommand := Commands.CreateObservationRequestCommand{
-		OType: "image",
-	}
-	orJson, _ := json.Marshal(orCommand)
-	orPart1.Write(orJson)
-
-	// observation request 2
-	orPart2, _ := writer.CreateFormField("requestList")
-	orCommand = Commands.CreateObservationRequestCommand{
-		OType: "other",
-	}
-	orJson, _ = json.Marshal(orCommand)
-	orPart2.Write(orJson)
 	writer.Close()
 
 	// ----- WHEN -----

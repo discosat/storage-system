@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/discosat/storage-system/internal/Commands"
 	"github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -51,36 +50,23 @@ func (d DimController) GetFlightPlan(c *gin.Context) {
 
 func (d DimController) CreateFlightPlan(c *gin.Context) {
 
-	var flightPlan Commands.CreateFlightPlanCommand
+	var flightPlan observationRequest.FlightPlanAggregate
 	err := json.Unmarshal([]byte(c.PostForm("flightPlan")), &flightPlan)
 	if err != nil {
 		errorAbortMessage(c, http.StatusBadRequest, err)
 		return
 	}
 
-	rList := c.PostFormArray("requestList")
-	var orList []Commands.CreateObservationRequestCommand
-	for _, r := range rList {
-		var or Commands.CreateObservationRequestCommand
-		err = json.Unmarshal([]byte(r), &or)
-		if err != nil {
-			slog.Warn(fmt.Sprintf("Could not bind request to ObservationRequuest: %v", err))
-			errorAbortMessage(c, http.StatusBadRequest, err)
-			return
-		}
-		orList = append(orList, or)
-	}
-
 	slog.Info("CreateFlightPlan: Request is sucessfully bound, persisting")
 
-	fpId, err := d.dimService.handleCreateFlightPlan(flightPlan, orList)
+	fpId, err := d.dimService.handleCreateFlightPlan(flightPlan)
 	if err != nil {
 		if err.(*observationRequest.ObservationRequestError).Code() == observationRequest.ObservationRequestParseError {
-			slog.Error(fmt.Sprintf("One or more observation requests are formatted wrong: %v", orList))
+			slog.Error(fmt.Sprintf("One or more observation requests are formatted wrong: %v", flightPlan.ObservationRequests))
 			errorAbortMessage(c, http.StatusBadRequest, err)
 			return
 		}
-		slog.Error(fmt.Sprintf("Could not create flight plan: %v, wiht observation requests: %v, %v", flightPlan, orList, err))
+		slog.Error(fmt.Sprintf("Could not create flight plan: %v, wiht observation requests: %v, %v", flightPlan, flightPlan.ObservationRequests, err))
 		errorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
