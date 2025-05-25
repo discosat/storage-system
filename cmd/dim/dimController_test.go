@@ -20,6 +20,8 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"regexp"
 	"testing"
 )
@@ -351,5 +353,34 @@ func (s *DimControllerIntegrationTestSuite) TestDeleteFlightPlanWithObservations
 // TODO Test sletning af en observation request (via opdater der har en observation. Skal slå fejl (Id 6)
 
 func (s *DimControllerIntegrationTestSuite) TestUploadBatch() {
+	t := s.T()
+
+	// GIVEN
+	// a batch (.zip) of images
+	//reader, err := zip.OpenReader(filepath.Join(".", "testData", "batch.zip"))
+	zip, err := os.Open(filepath.Join(".", "testData", "batch.zip"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer zip.Close()
+	// ----- GIVEN -----
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	batchPart, _ := writer.CreateFormFile("batch", filepath.Base(zip.Name()))
+	io.Copy(batchPart, zip)
+	writer.Close()
+
+	// ----- WHEN -----
+	// Batch is uploaded
+	request, _ := http.NewRequest("POST", "/batch", body)
+	request.Header.Set("Content-Type", writer.FormDataContentType()+"; boundary="+writer.Boundary())
+	//request.Header.Set("Accept-Encoding", "gzip, deflate, br")
+	w := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+	response, _ := io.ReadAll(w.Body)
+
+	// THEN
+	assert.Equal(t, http.StatusCreated, w.Code)
+	assert.Equal(t, `{"ObservationIds":[2,3,4,5,6,7,8]}`, string(response))
 
 }

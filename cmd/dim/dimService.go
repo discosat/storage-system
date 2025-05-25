@@ -20,7 +20,7 @@ import (
 
 type DimServiceInterface interface {
 	handleUploadImage(file *io.ReadCloser, fileName string, fileSize int64) (int, error)
-	handleUploadBatch(archive *zip.ReadCloser) error
+	handleUploadBatch(archive *zip.ReadCloser) ([]int, error)
 	handleGetFlightPlan(id int) (FlightPlanAggregate, error)
 	handleCreateFlightPlan(flightPlan CreateFlightPlanCommand, requestList []CreateObservationRequestCommand) (int, error)
 	handleUpdateFlightPlan(flightPlan FlightPlanAggregate) (int, error)
@@ -108,31 +108,33 @@ func (d DimService) handleDeleteFlightPlan(id int) (bool, error) {
 	return d.observationRequestRepository.DeleteFlightPlan(id)
 }
 
-func (d DimService) handleUploadBatch(archive *zip.ReadCloser) error {
+func (d DimService) handleUploadBatch(archive *zip.ReadCloser) ([]int, error) {
+	uploadedIds := make([]int, 0)
 	for _, iFile := range archive.File {
 		if iFile.FileInfo().IsDir() {
 			continue
 		}
 		oFile, err := iFile.Open()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		//oFile, err = iFile.Open()
-		_, err = d.handleUploadImage(&oFile, iFile.Name, iFile.FileInfo().Size())
+		id, err := d.handleUploadImage(&oFile, iFile.Name, iFile.FileInfo().Size())
+		uploadedIds = append(uploadedIds, id)
 		if err != nil {
 			log.Printf("UploadBatch: Cannot upload thie file %v, error is %v", iFile.Name, err)
 			break
 		}
 		err = oFile.Close()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		//log.Println(result)
 	}
 
 	log.Println("batch is uploaded")
 
-	return nil
+	return uploadedIds, nil
 }
 
 func extractMetadata(raw []byte) (int, ObservationMetadata, error) {

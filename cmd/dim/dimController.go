@@ -148,13 +148,13 @@ func (d DimController) UploadBatch(c *gin.Context) {
 		return
 	}
 
-	err = d.dimService.handleUploadBatch(reader)
+	ids, err := d.dimService.handleUploadBatch(reader)
 	if err != nil {
 		errorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, nil)
+	c.JSON(http.StatusCreated, gin.H{"ObservationIds": ids})
 	return
 }
 
