@@ -47,7 +47,6 @@ func (d DimController) GetFlightPlan(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"flightPlan": flightPlan})
-	return
 }
 
 func (d DimController) CreateFlightPlan(c *gin.Context) {
@@ -72,7 +71,7 @@ func (d DimController) CreateFlightPlan(c *gin.Context) {
 		orList = append(orList, or)
 	}
 
-	slog.Info(fmt.Sprintf("CreateFlightPlan: Request is sucessfully bound, persisting"))
+	slog.Info("CreateFlightPlan: Request is sucessfully bound, persisting")
 
 	fpId, err := d.dimService.handleCreateFlightPlan(flightPlan, orList)
 	if err != nil {
@@ -97,6 +96,9 @@ func (d DimController) UpdateFlightPlan(c *gin.Context) {
 		return
 	}
 	id, err := d.dimService.handleUpdateFlightPlan(flightPlan)
+	if err != nil {
+		errorAbortMessage(c, http.StatusInternalServerError, err)
+	}
 	c.JSON(http.StatusOK, gin.H{"flightPlanId": id})
 }
 
@@ -120,7 +122,7 @@ func (d DimController) DeleteFlightPlan(c *gin.Context) {
 			return
 		}
 		if pgEr, ok := err.(*pgconn.PgError); ok && pgEr.Code == "23503" {
-			errorAbortMessage(c, http.StatusBadRequest, err)
+			errorAbortMessage(c, http.StatusBadRequest, pgEr)
 			return
 		}
 		errorAbortMessage(c, http.StatusInternalServerError, fmt.Errorf("error in deleting flight plan wtih id: %v: %v", fpId, err))
@@ -132,7 +134,14 @@ func (d DimController) DeleteFlightPlan(c *gin.Context) {
 
 func (d DimController) UploadBatch(c *gin.Context) {
 	file, err := c.FormFile("batch")
+	if err != nil {
+		errorAbortMessage(c, http.StatusBadRequest, err)
+	}
+
 	oFile, err := file.Open()
+	if err != nil {
+		errorAbortMessage(c, http.StatusBadRequest, err)
+	}
 
 	tmpFile, _ := os.CreateTemp("", "temp*.zip")
 	defer os.Remove(tmpFile.Name())
@@ -155,7 +164,6 @@ func (d DimController) UploadBatch(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"ObservationIds": ids})
-	return
 }
 
 //func GetMissions(c *gin.Context) {

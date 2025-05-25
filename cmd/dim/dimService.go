@@ -5,54 +5,35 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	. "github.com/discosat/storage-system/internal/Commands"
-	"log/slog"
-	"strconv"
-
-	. "github.com/discosat/storage-system/internal/observation"
-	. "github.com/discosat/storage-system/internal/observationRequest"
-	"github.com/gin-gonic/gin"
+	"github.com/discosat/storage-system/internal/Commands"
+	"github.com/discosat/storage-system/internal/observation"
+	"github.com/discosat/storage-system/internal/observationRequest"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"io"
 	"log"
+	"log/slog"
 	"os/exec"
 )
 
 type DimServiceInterface interface {
 	handleUploadImage(file *io.ReadCloser, fileName string, fileSize int64) (int, error)
 	handleUploadBatch(archive *zip.ReadCloser) ([]int, error)
-	handleGetFlightPlan(id int) (FlightPlanAggregate, error)
-	handleCreateFlightPlan(flightPlan CreateFlightPlanCommand, requestList []CreateObservationRequestCommand) (int, error)
-	handleUpdateFlightPlan(flightPlan FlightPlanAggregate) (int, error)
+	handleGetFlightPlan(id int) (observationRequest.FlightPlanAggregate, error)
+	handleCreateFlightPlan(flightPlan Commands.CreateFlightPlanCommand, requestList []Commands.CreateObservationRequestCommand) (int, error)
+	handleUpdateFlightPlan(flightPlan observationRequest.FlightPlanAggregate) (int, error)
 	handleDeleteFlightPlan(id int) (bool, error)
 }
 
 type DimService struct {
-	observationRequestRepository ObservationRequestRepository
-	observationRepository        ObservationRepository
+	observationRequestRepository observationRequest.ObservationRequestRepository
+	observationRepository        observation.ObservationRepository
 }
 
-func NewDimService(oRepo ObservationRepository, orRepo ObservationRequestRepository) *DimService {
+func NewDimService(oRepo observation.ObservationRepository, orRepo observationRequest.ObservationRequestRepository) *DimService {
 	return &DimService{
 		observationRequestRepository: orRepo,
 		observationRepository:        oRepo,
 	}
-}
-
-func (d DimService) test(c *gin.Context) (ObservationRequestAggregate, error) {
-	var qId = c.Query("orId")
-	//orId, err := strconv.ParseInt(qId, 10, 0)
-	orId, err := strconv.Atoi(qId)
-	if err != nil {
-		log.Fatalf("Not an int")
-	}
-	log.Println(orId)
-	or, err := d.observationRequestRepository.GetObservationRequest(orId)
-	if err != nil {
-		log.Fatalf("Get observation request went wrong: %v", err)
-	}
-	log.Println(or)
-	return or, err
 }
 
 func (d DimService) handleUploadImage(file *io.ReadCloser, fileName string, fileSize int64) (int, error) {
@@ -81,7 +62,7 @@ func (d DimService) handleUploadImage(file *io.ReadCloser, fileName string, file
 	}
 
 	fileReader := bytes.NewReader(raw)
-	observationCommand := ObservationCommand{File: fileReader, FileName: fileName, FileSize: fileSize, Bucket: observationRequestAggr.Mission.Bucket, FlightPlanName: observationRequestAggr.FlightPlan.Name, ObservationRequestId: observationRequestAggr.ObservationRequest.Id}
+	observationCommand := Commands.ObservationCommand{File: fileReader, FileName: fileName, FileSize: fileSize, Bucket: observationRequestAggr.Mission.Bucket, FlightPlanName: observationRequestAggr.FlightPlan.Name, ObservationRequestId: observationRequestAggr.ObservationRequest.Id}
 	// Saves image
 	observationId, err := d.observationRepository.CreateObservation(observationCommand, &metadata)
 	if err != nil {
@@ -91,15 +72,15 @@ func (d DimService) handleUploadImage(file *io.ReadCloser, fileName string, file
 	return observationId, nil
 }
 
-func (d DimService) handleGetFlightPlan(id int) (FlightPlanAggregate, error) {
+func (d DimService) handleGetFlightPlan(id int) (observationRequest.FlightPlanAggregate, error) {
 	return d.observationRequestRepository.GetFlightPlanById(id)
 }
 
-func (d DimService) handleCreateFlightPlan(flightPlan CreateFlightPlanCommand, requestList []CreateObservationRequestCommand) (int, error) {
+func (d DimService) handleCreateFlightPlan(flightPlan Commands.CreateFlightPlanCommand, requestList []Commands.CreateObservationRequestCommand) (int, error) {
 	return d.observationRequestRepository.CreateFlightPlan(flightPlan, requestList)
 }
 
-func (d DimService) handleUpdateFlightPlan(flightPlan FlightPlanAggregate) (int, error) {
+func (d DimService) handleUpdateFlightPlan(flightPlan observationRequest.FlightPlanAggregate) (int, error) {
 	return d.observationRequestRepository.UpdateFlightPlan(flightPlan)
 
 }
@@ -137,7 +118,7 @@ func (d DimService) handleUploadBatch(archive *zip.ReadCloser) ([]int, error) {
 	return uploadedIds, nil
 }
 
-func extractMetadata(raw []byte) (int, ObservationMetadata, error) {
+func extractMetadata(raw []byte) (int, observation.ObservationMetadata, error) {
 
 	// call exifTool
 	cmd := exec.Command("exiftool", "-json", "-")
@@ -145,10 +126,10 @@ func extractMetadata(raw []byte) (int, ObservationMetadata, error) {
 	result, err := cmd.Output()
 	if err != nil {
 		//log.Fatalf("err: %v", err)
-		return -1, ObservationMetadata{}, err
+		return -1, observation.ObservationMetadata{}, err
 	}
 
-	metadata := ObservationMetadata{
+	metadata := observation.ObservationMetadata{
 		Size:          12345678,
 		Height:        1080,
 		Width:         1920,
@@ -173,12 +154,12 @@ func extractMetadata(raw []byte) (int, ObservationMetadata, error) {
 	var l map[string]int
 	err = json.Unmarshal([]byte(s), &l)
 	if err != nil {
-		return -1, ObservationMetadata{}, fmt.Errorf("extractMetadata: %v", err)
+		return -1, observation.ObservationMetadata{}, fmt.Errorf("extractMetadata: %v", err)
 	}
 
 	relatedObservationRequest := l["measurementRequest"]
 	if relatedObservationRequest == 0 {
-		return -1, ObservationMetadata{}, fmt.Errorf("extractMetadata: %v", err)
+		return -1, observation.ObservationMetadata{}, fmt.Errorf("extractMetadata: %v", err)
 	}
 	return relatedObservationRequest, metadata, nil
 }

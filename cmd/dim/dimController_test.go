@@ -35,6 +35,7 @@ type DimControllerIntegrationTestSuite struct {
 }
 
 func (s *DimControllerIntegrationTestSuite) SetupSuite() {
+	t := s.T()
 	s.ctx = context.Background()
 	postgisContainer, err := test.SetupPostgresContainer(s.ctx)
 	if err != nil {
@@ -42,7 +43,13 @@ func (s *DimControllerIntegrationTestSuite) SetupSuite() {
 	}
 	s.pgContainer = postgisContainer
 	connString, err := postgisContainer.ConnectionString(s.ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 	db, err := sql.Open("pgx", connString)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	minioContainer, err := test.SetupMinioContainer(s.ctx)
 	if err != nil {
@@ -243,13 +250,28 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanIntegration() {
 	//requested
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	FpPart, _ := writer.CreateFormField("flightPlan")
+	FpPart, err := writer.CreateFormField("flightPlan")
+	if err != nil {
+		t.Fatal(err)
+	}
 	// New flight Plan
 	FpJson, err := json.Marshal(flightPlan2)
+	if err != nil {
+		t.Fatal(err)
+	}
 	_, err = FpPart.Write(FpJson)
+	if err != nil {
+		t.Fatal(err)
+	}
 	err = writer.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	request, err = http.NewRequest("PUT", "/flightPlan", body)
+	if err != nil {
+		t.Fatal(err)
+	}
 	request.Header.Set("Content-Type", "multipart/form-data; boundary="+writer.Boundary())
 	notNeeded := httptest.NewRecorder()
 	s.dimRouter.ServeHTTP(notNeeded, request)
@@ -343,7 +365,7 @@ func (s *DimControllerIntegrationTestSuite) TestDeleteFlightPlanWithObservations
 	request = httptest.NewRequest("DELETE", "/flightPlan?id=2", nil)
 	responseWriter = httptest.NewRecorder()
 	s.dimRouter.ServeHTTP(responseWriter, request)
-	response, _ = io.ReadAll(responseWriter.Body)
+	_, _ = io.ReadAll(responseWriter.Body)
 	//EXPECT
 	// BadRequest
 	assert.Equal(t, responseWriter.Code, 400)
