@@ -218,12 +218,13 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanIntegration() {
 	s.dimRouter.ServeHTTP(w, request)
 	response, _ := io.ReadAll(w.Body)
 
-	var jsonMap map[string]observationRequest.FlightPlanAggregate
-	err := json.Unmarshal(response, &jsonMap)
+	//var jsonMap map[string]observationRequest.FlightPlanAggregate
+	//err := json.Unmarshal(response, &jsonMap)
+	var flightPlan2 observationRequest.FlightPlanAggregate
+	err := test.BindFlightPlanJson(response, &flightPlan2)
 	if err != nil {
-		log.Fatal("Could not bind flightPlan")
+		log.Fatalf("Could not bind flightPlan: %v", err)
 	}
-	flightPlan2 := jsonMap["flightPlan"]
 
 	// ----- EXPECT -----
 	assert.Equal(t, flightPlan2.Name, "flight plan 2")
@@ -258,11 +259,11 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanIntegration() {
 	response, _ = io.ReadAll(w.Body)
 
 	//var jsonMap map[string]observationRequest.FlightPlanAggregate
-	err = json.Unmarshal(response, &jsonMap)
+	var updatedFlightPlan observationRequest.FlightPlanAggregate
+	err = test.BindFlightPlanJson(response, &updatedFlightPlan)
 	if err != nil {
-		log.Fatal("Could not bind flightPlan")
+		t.Fatal(err)
 	}
-	updatedFlightPlan := jsonMap["flightPlan"]
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, updatedFlightPlan.Name, newFpName)
@@ -270,4 +271,85 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanIntegration() {
 
 }
 
+func (s *DimControllerIntegrationTestSuite) TestDeleteFlightPlan() {
+	t := s.T()
+	// GIVEN
+	// ObservationRequest with id 2 exists
+	request := httptest.NewRequest("GET", "/flightPlan?id=3", nil)
+	responseWriter := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(responseWriter, request)
+	response, _ := io.ReadAll(responseWriter.Body)
+	var flightPlan observationRequest.FlightPlanAggregate
+	err := test.BindFlightPlanJson(response, &flightPlan)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// EXPECT
+	// Looks as expected
+	assert.Equal(t, flightPlan.Id, 3)
+	assert.Equal(t, len(flightPlan.ObservationRequests), 2)
+
+	// WHEN
+	// Flight plan with id 2 is deleted
+	request = httptest.NewRequest("DELETE", "/flightPlan?id=3", nil)
+	responseWriter = httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(responseWriter, request)
+	response, _ = io.ReadAll(responseWriter.Body)
+	//EXPECT
+	// success
+	assert.Equal(t, responseWriter.Code, 200)
+	assert.Equal(t, string(response), `{"message":"flight plan: 3 has been deleted"}`)
+
+	// THEN
+	// No flight plan with id 2 exists
+	request = httptest.NewRequest("GET", "/flightPlan?id=3", nil)
+	responseWriter = httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(responseWriter, request)
+	response, _ = io.ReadAll(responseWriter.Body)
+	//var emptyFlightPlan observationRequest.FlightPlanAggregate
+	//expectedError := test.BindFlightPlanJson(response, &emptyFlightPlan)
+
+	// EXPECT
+	// Looks as expected
+	//assert.NotNil(t, expectedError)
+	assert.Equal(t, responseWriter.Code, 404)
+	assert.Equal(t, string(response), `{"error":"no flight plan with id: 3"}`)
+}
+
+func (s *DimControllerIntegrationTestSuite) TestDeleteFlightPlanWithObservationsError() {
+	t := s.T()
+	// GIVEN
+	// ObservationRequest with id 2 exists, that has had an observation uploaded to it
+	request := httptest.NewRequest("GET", "/flightPlan?id=2", nil)
+	responseWriter := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(responseWriter, request)
+	response, _ := io.ReadAll(responseWriter.Body)
+	var flightPlan observationRequest.FlightPlanAggregate
+	err := test.BindFlightPlanJson(response, &flightPlan)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// EXPECT
+	// Looks as expected
+	assert.Equal(t, flightPlan.Id, 2)
+	assert.Equal(t, len(flightPlan.ObservationRequests), 2)
+
+	// WHEN
+	// Flight plan with id 2 is attempted deleted
+	request = httptest.NewRequest("DELETE", "/flightPlan?id=2", nil)
+	responseWriter = httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(responseWriter, request)
+	response, _ = io.ReadAll(responseWriter.Body)
+	//EXPECT
+	// BadRequest
+	assert.Equal(t, responseWriter.Code, 400)
+}
+
 // TODO husk også hentning af image_series
+// TODO Test sletning af en observation request (via opdater der har en observation. Skal slå fejl (Id 6)
+
+func (s *DimControllerIntegrationTestSuite) TestUploadBatch() {
+
+}

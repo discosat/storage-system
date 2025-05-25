@@ -9,6 +9,7 @@ import (
 	"github.com/discosat/storage-system/internal/Commands"
 	"github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgconn"
 	"io"
 	"log/slog"
 	"net/http"
@@ -114,7 +115,11 @@ func (d DimController) DeleteFlightPlan(c *gin.Context) {
 
 	_, err = d.dimService.handleDeleteFlightPlan(fpId)
 	if err != nil {
-		if err.(*observationRequest.ObservationRequestError).Code() == observationRequest.FlightPlanNotFound {
+		if er, ok := err.(*observationRequest.ObservationRequestError); ok && er.Code() == observationRequest.FlightPlanNotFound {
+			errorAbortMessage(c, http.StatusBadRequest, err)
+			return
+		}
+		if pgEr, ok := err.(*pgconn.PgError); ok && pgEr.Code == "23503" {
 			errorAbortMessage(c, http.StatusBadRequest, err)
 			return
 		}

@@ -2,6 +2,8 @@ package test
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/minio"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -34,4 +36,15 @@ func SetupMinioContainer(ctx context.Context) (*minio.MinioContainer, error) {
 	os.Setenv("MINIO_SECRET_ACCESS_KEY", minioContainer.Password)
 	os.Setenv("MINIO_USE_SSL", "false")
 	return minioContainer, err
+}
+
+func BindFlightPlanJson(source []byte, sink *observationRequest.FlightPlanAggregate) error {
+
+	var jsonMap map[string]observationRequest.FlightPlanAggregate
+	err := json.Unmarshal(source, &jsonMap)
+	if err != nil {
+		return err
+	}
+	*sink = jsonMap["flightPlan"]
+	return nil
 }
