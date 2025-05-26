@@ -2,30 +2,53 @@ package dam
 
 import (
 	"fmt"
+	"github.com/discosat/storage-system/cmd/db"
 	"github.com/discosat/storage-system/cmd/disco_qom"
 	"github.com/discosat/storage-system/cmd/interfaces"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
 func Start() {
 	g := gin.Default()
 
-	g.GET("/images", RequestHandler)
+	pgClient, err := db.NewPostgresClient(os.Getenv("POSTGRES_CONN"))
+	if err != nil {
+		log.Fatal("Failed to init Postgres:", err)
+	}
+
+	minioClient, err := db.NewMinIOClient()
+	if err != nil {
+		log.Fatal("Failed to init MinIO:", err)
+	}
+
+	// Create handler
+	handler := &DataAccessHandler{
+		MetadataFetcher: pgClient,
+		ImageFetcher:    minioClient,
+	}
+
+	g.GET("/images", handler.RequestHandler)
 
 	g.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	err := g.Run(":8081")
+	err = g.Run(":8081")
 	if err != nil {
 		log.Fatal("Failed to start server")
 	}
 }
 
-func RequestHandler(c *gin.Context) {
+type DataAccessHandler struct {
+	MetadataFetcher interfaces.MetadataFetcher
+	ImageFetcher    interfaces.ImageFetcher
+}
+
+func (h *DataAccessHandler) RequestHandler(c *gin.Context) {
 	var req interfaces.ImageRequest
 
 	if err := c.ShouldBindQuery(&req); err != nil {
@@ -48,7 +71,7 @@ func RequestHandler(c *gin.Context) {
 	}
 
 	//Calling db with SQL query string and arguments
-	imageMetadata, PostgresErr := PostgresService(sqlQuery, args)
+	imageMetadata, PostgresErr := h.MetadataFetcher.FetchMetadata(sqlQuery, args)
 	if PostgresErr != nil {
 		log.Fatal("Failed to call PostgreSQL DB with SQL query", PostgresErr)
 	}
@@ -65,7 +88,7 @@ func RequestHandler(c *gin.Context) {
 	}
 
 	//Calling Minio service with image IDs
-	retrievedImages, minIOErr := MinIOService(imageMinIOData)
+	retrievedImages, minIOErr := h.ImageFetcher.FetchImages(imageMinIOData)
 	if minIOErr != nil {
 		log.Fatal("Failed to call MinIO service", minIOErr)
 	}
