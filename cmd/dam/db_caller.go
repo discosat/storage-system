@@ -28,11 +28,13 @@ func InitDB() {
 	var err error
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal("Failed to open DB connection:", err)
+		log.Printf("Failed to open DB connection: %v", err)
+		return
 	}
 
 	if err := db.Ping(); err != nil {
-		log.Fatal("Failed to ping DB:", err)
+		log.Printf("Failed to ping DB: %v", err)
+		return
 	}
 }
 
@@ -40,7 +42,8 @@ func PostgresService(query string, args []interface{}) ([]interfaces.ImageMetada
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Fatal("An ERROR occured trying to create a query to the PostgreSQL database: ", err)
+		log.Printf("An ERROR occurred trying to create a query to the PostgreSQL database: %v", err)
+		return nil, err
 	}
 
 	defer rows.Close()
@@ -79,7 +82,8 @@ func MinIOService(imageInfo []interfaces.ImageMinIOData) ([]interfaces.Retrieved
 		Secure: true,
 	})
 	if err != nil {
-		log.Fatal("Failed to create MinIO client:", err)
+		log.Printf("Failed to create MinIO client: %v", err)
+		return nil, err
 	}
 
 	ctx := context.Background()
