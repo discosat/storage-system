@@ -34,8 +34,8 @@ func RequestHandler(c *gin.Context) {
 	}
 
 	//Authenticating the request
-	auth := AuthService()
-	fmt.Println(auth)
+	//auth := AuthService()
+	//fmt.Println(auth)
 
 	//Passing request on to QOM
 	discoQO := &disco_qom.DiscoQO{}
