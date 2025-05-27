@@ -6,13 +6,14 @@ import (
 	"github.com/discosat/storage-system/cmd/disco_qom"
 	"github.com/discosat/storage-system/cmd/interfaces"
 	"github.com/gin-gonic/gin"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"log"
 	"net/http"
 	"os"
 	"time"
 )
 
-func Start() {
+func ConfigureRouter() (*gin.Engine, error) {
 	g := gin.Default()
 
 	pgClient, err := db.NewPostgresClient(os.Getenv("POSTGRES_CONN"))
@@ -37,10 +38,7 @@ func Start() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	err = g.Run(":8081")
-	if err != nil {
-		log.Fatal("Failed to start server")
-	}
+	return g, nil
 }
 
 type DataAccessHandler struct {

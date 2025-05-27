@@ -9,6 +9,7 @@ import (
 	"github.com/discosat/storage-system/internal/observation"
 	"github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/gin-gonic/gin"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/joho/godotenv"
 	"log"
 	"log/slog"
@@ -37,7 +38,11 @@ func main() {
 	//dam.InitDB()
 
 	// Initialize DIM and DAM services
-	go dam.Start()
+	damRouter, err := dam.ConfigureRouter()
+	if err != nil {
+		log.Fatal("Failed to start server")
+	}
+	go damRouter.Run(":8081")
 	dimRouter := ConfigDimRouter(db, store)
 	go dimRouter.Run("0.0.0.0:8080") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 

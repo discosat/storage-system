@@ -4,6 +4,7 @@
     <inspection_tool class="GoDfaErrorMayBeNotNil" enabled="true" level="WARNING" enabled_by_default="true">
       <functions>
         <function importPath="archive/zip" name="OpenReader" />
+        <function importPath="github.com/minio/minio-go/v7" name="New" />
       </functions>
     </inspection_tool>
   </profile>
