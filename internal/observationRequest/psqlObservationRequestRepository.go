@@ -134,7 +134,15 @@ func (p PsqlObservationRequestRepository) UpdateFlightPlan(flightPlan FlightPlan
 		deleteIds[id] = true
 	}
 
+	//check if observation request should be deleted or added
 	for _, request := range flightPlan.ObservationRequests {
+		if _, ok := deleteIds[request.Id]; !ok {
+			_, err := tx.Exec("INSERT INTO observation_request (id, flight_plan_id, type) VALUES ($1, $2, $3)", request.Id, flightPlan.Id, request.OType)
+			if err != nil {
+				return -1, err
+			}
+			continue
+		}
 		delete(deleteIds, request.Id)
 	}
 	// Update
