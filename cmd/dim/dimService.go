@@ -76,23 +76,6 @@ func (d DimService) handleUploadImage(file *io.ReadCloser, fileName string, file
 	return observationId, nil
 }
 
-func (d DimService) handleGetFlightPlan(id int) (observationRequest.FlightPlanAggregate, error) {
-	return d.observationRequestRepository.GetFlightPlanById(id)
-}
-
-func (d DimService) handleCreateFlightPlan(flightPlan observationRequest.FlightPlanAggregate) (int, error) {
-	return d.observationRequestRepository.CreateFlightPlan(flightPlan)
-}
-
-func (d DimService) handleUpdateFlightPlan(flightPlan observationRequest.FlightPlanAggregate) (int, error) {
-	return d.observationRequestRepository.UpdateFlightPlan(flightPlan)
-
-}
-
-func (d DimService) handleDeleteFlightPlan(id int) (bool, error) {
-	return d.observationRequestRepository.DeleteFlightPlan(id)
-}
-
 func (d DimService) handleUploadBatch(archive *zip.ReadCloser) ([]int, error) {
 	uploadedIds := make([]int, 0)
 	for _, iFile := range archive.File {
@@ -120,6 +103,23 @@ func (d DimService) handleUploadBatch(archive *zip.ReadCloser) ([]int, error) {
 	log.Println("batch is uploaded")
 
 	return uploadedIds, nil
+}
+
+func (d DimService) handleGetFlightPlan(id int) (observationRequest.FlightPlanAggregate, error) {
+	return d.observationRequestRepository.GetFlightPlanById(id)
+}
+
+func (d DimService) handleCreateFlightPlan(flightPlan observationRequest.FlightPlanAggregate) (int, error) {
+	return d.observationRequestRepository.CreateFlightPlan(flightPlan)
+}
+
+func (d DimService) handleUpdateFlightPlan(flightPlan observationRequest.FlightPlanAggregate) (int, error) {
+	return d.observationRequestRepository.UpdateFlightPlan(flightPlan)
+
+}
+
+func (d DimService) handleDeleteFlightPlan(id int) (bool, error) {
+	return d.observationRequestRepository.DeleteFlightPlan(id)
 }
 
 func extractMetadata(raw []byte) (int, observation.ObservationMetadata, error) {

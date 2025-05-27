@@ -28,11 +28,6 @@ func (p PsqlObservationRequestRepository) GetObservationRequest(id int) (Observa
 	return observationRequest, err
 }
 
-func (p PsqlObservationRequestRepository) GetMissionById(id int) (Mission, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
 func (p PsqlObservationRequestRepository) GetFlightPlanById(id int) (FlightPlanAggregate, error) {
 	var flightPlan FlightPlanAggregate
 	tx, err := p.db.BeginTx(context.Background(), &sql.TxOptions{ReadOnly: true})
@@ -187,15 +182,4 @@ func (p PsqlObservationRequestRepository) DeleteFlightPlan(id int) (bool, error)
 		return false, err
 	}
 	return true, nil
-}
-
-func (p PsqlObservationRequestRepository) GetObservationRequestById(id int) (ObservationRequest, error) {
-	var observationRequest ObservationRequest
-	err := p.db.QueryRow("SELECT * FROM observation_request WHERE id = $1", id).Scan(&observationRequest.Id, &observationRequest.FlightPlanId, &observationRequest.OType)
-	return observationRequest, err
-}
-
-func (p PsqlObservationRequestRepository) CreateObservationRequest(flightPLanId int, camera string) {
-	//TODO implement me
-	panic("implement me")
 }
