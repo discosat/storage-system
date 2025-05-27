@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"testing"
 )
 
@@ -111,8 +112,8 @@ func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanIntegration() {
 		UserId:    1,
 		MissionId: 1,
 		ObservationRequests: []observationRequest.ObservationRequestDTO{
-			{Id: 40, OType: "image"},
-			{Id: 41, OType: "other"},
+			{Id: 123, OType: "image"},
+			{Id: 124, OType: "other"},
 		},
 	}
 	fpJson, _ := json.Marshal(flightPlan)
@@ -207,29 +208,29 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanIntegration() {
 	// -----GIVEN-----
 	//flight plan 2
 	t := s.T()
-	request, _ := http.NewRequest("GET", "/flightPlan?id=2", nil)
+	request, _ := http.NewRequest("GET", "/flightPlan?id=4", nil)
 	w := httptest.NewRecorder()
 	s.dimRouter.ServeHTTP(w, request)
 	response, _ := io.ReadAll(w.Body)
 
 	//var jsonMap map[string]observationRequest.FlightPlanAggregate
 	//err := json.Unmarshal(response, &jsonMap)
-	var flightPlan2 observationRequest.FlightPlanAggregate
-	err := test.BindFlightPlanJson(response, &flightPlan2)
+	var flightPlan observationRequest.FlightPlanAggregate
+	err := test.BindFlightPlanJson(response, &flightPlan)
 	if err != nil {
 		log.Fatalf("Could not bind flightPlan: %v", err)
 	}
 
 	// ----- EXPECT -----
-	assert.Equal(t, flightPlan2.Name, "flight plan 2")
-	assert.Equal(t, flightPlan2.ObservationRequests[0].OType, "image")
+	assert.Equal(t, flightPlan.Name, "flight plan update test")
+	assert.Equal(t, flightPlan.ObservationRequests[0].OType, "image")
 
 	//----- WHEN -----
 	//altered
 	newFpName := "Nyt navn 2"
 	newOrType := "number"
-	flightPlan2.Name = newFpName
-	flightPlan2.ObservationRequests[0].OType = newOrType
+	flightPlan.Name = newFpName
+	flightPlan.ObservationRequests[0].OType = newOrType
 
 	//----- AND -----
 	//requested
@@ -240,7 +241,7 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanIntegration() {
 		t.Fatal(err)
 	}
 	// New flight Plan
-	FpJson, err := json.Marshal(flightPlan2)
+	FpJson, err := json.Marshal(flightPlan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -262,7 +263,7 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanIntegration() {
 	s.dimRouter.ServeHTTP(notNeeded, request)
 	// ----- THEN -----
 	//when Retrieved again
-	request, _ = http.NewRequest("GET", "/flightPlan?id=2", nil)
+	request, _ = http.NewRequest("GET", "/flightPlan?id=4", nil)
 	w = httptest.NewRecorder()
 	s.dimRouter.ServeHTTP(w, request)
 	response, _ = io.ReadAll(w.Body)
@@ -277,6 +278,227 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanIntegration() {
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, updatedFlightPlan.Name, newFpName)
 	assert.Equal(t, updatedFlightPlan.ObservationRequests[0].OType, newOrType)
+
+}
+
+func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanAddObservationRequestIntegration() {
+	// -----GIVEN-----
+	//flight plan 2
+	t := s.T()
+	request, _ := http.NewRequest("GET", "/flightPlan?id=4", nil)
+	w := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+	response, _ := io.ReadAll(w.Body)
+
+	//var jsonMap map[string]observationRequest.FlightPlanAggregate
+	//err := json.Unmarshal(response, &jsonMap)
+	var flightPlan observationRequest.FlightPlanAggregate
+	err := test.BindFlightPlanJson(response, &flightPlan)
+	if err != nil {
+		log.Fatalf("Could not bind flightPlan: %v", err)
+	}
+	numOriginalObservationRequests := len(flightPlan.ObservationRequests)
+
+	// ----- EXPECT -----
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, flightPlan.Name, "flight plan update test")
+
+	//----- WHEN -----
+	//Observation request is added
+	flightPlan.ObservationRequests =
+		append(flightPlan.ObservationRequests, observationRequest.ObservationRequestDTO{Id: 456, OType: "image"})
+
+	//----- AND -----
+	// Updated
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	FpPart, err := writer.CreateFormField("flightPlan")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// New flight Plan
+	FpJson, err := json.Marshal(flightPlan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = FpPart.Write(FpJson)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = writer.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	request, err = http.NewRequest("PUT", "/flightPlan", body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "multipart/form-data; boundary="+writer.Boundary())
+	w = httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+
+	// EXPECT
+	// Success
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// ----- THEN -----
+	//when Retrieved again
+	request, _ = http.NewRequest("GET", "/flightPlan?id=4", nil)
+	w = httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+	response, _ = io.ReadAll(w.Body)
+
+	var updatedFlightPlan observationRequest.FlightPlanAggregate
+	err = test.BindFlightPlanJson(response, &updatedFlightPlan)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// EXPECT
+	// number of observation requests is one larger
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, numOriginalObservationRequests+1, len(updatedFlightPlan.ObservationRequests))
+}
+
+func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanRemoveObservationRequestIntegration() {
+	// -----GIVEN-----
+	//flight plan 2
+	t := s.T()
+	request, _ := http.NewRequest("GET", "/flightPlan?id=5", nil)
+	w := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+	response, _ := io.ReadAll(w.Body)
+
+	//var jsonMap map[string]observationRequest.FlightPlanAggregate
+	//err := json.Unmarshal(response, &jsonMap)
+	var flightPlan observationRequest.FlightPlanAggregate
+	err := test.BindFlightPlanJson(response, &flightPlan)
+	if err != nil {
+		log.Fatalf("Could not bind flightPlan: %v", err)
+	}
+	numOriginalObservationRequests := len(flightPlan.ObservationRequests)
+
+	// ----- EXPECT -----
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, flightPlan.Name, "flight plan update delete test")
+
+	//----- WHEN -----
+	//Observation request is deleted
+	flightPlan.ObservationRequests = slices.Delete(flightPlan.ObservationRequests, 0, 1)
+
+	//----- AND -----
+	// Updated
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	FpPart, err := writer.CreateFormField("flightPlan")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// New flight Plan
+	FpJson, err := json.Marshal(flightPlan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = FpPart.Write(FpJson)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = writer.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	request, err = http.NewRequest("PUT", "/flightPlan", body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "multipart/form-data; boundary="+writer.Boundary())
+	w = httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+
+	// EXPECT
+	// Success
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// ----- THEN -----
+	//when Retrieved again
+	request, _ = http.NewRequest("GET", "/flightPlan?id=5", nil)
+	w = httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+	response, _ = io.ReadAll(w.Body)
+
+	var updatedFlightPlan observationRequest.FlightPlanAggregate
+	err = test.BindFlightPlanJson(response, &updatedFlightPlan)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// EXPECT
+	// number of observation requests is one larger
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, numOriginalObservationRequests-1, len(updatedFlightPlan.ObservationRequests))
+}
+
+func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanLockedErrorIntegration() {
+	// -----GIVEN-----
+	//flight plan 2
+	t := s.T()
+	request, _ := http.NewRequest("GET", "/flightPlan?id=2", nil)
+	w := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+	response, _ := io.ReadAll(w.Body)
+
+	//var jsonMap map[string]observationRequest.FlightPlanAggregate
+	//err := json.Unmarshal(response, &jsonMap)
+	var flightPlan observationRequest.FlightPlanAggregate
+	err := test.BindFlightPlanJson(response, &flightPlan)
+	if err != nil {
+		log.Fatalf("Could not bind flightPlan: %v", err)
+	}
+
+	// ----- EXPECT -----
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, flightPlan.Id, 2)
+	assert.Equal(t, flightPlan.Locked, true)
+
+	//----- WHEN -----
+	//Flight plan is changed
+	flightPlan.Name = "This should give an error because it is locked"
+
+	//----- AND -----
+	// Updated
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	FpPart, err := writer.CreateFormField("flightPlan")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// New flight Plan
+	FpJson, err := json.Marshal(flightPlan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = FpPart.Write(FpJson)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = writer.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	request, err = http.NewRequest("PUT", "/flightPlan", body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set("Content-Type", "multipart/form-data; boundary="+writer.Boundary())
+	w = httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(w, request)
+
+	// Then
+	// Error
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 
 }
 

@@ -83,7 +83,12 @@ func (d DimController) UpdateFlightPlan(c *gin.Context) {
 	}
 	id, err := d.dimService.handleUpdateFlightPlan(flightPlan)
 	if err != nil {
+		if lockedErr, ok := err.(*observationRequest.ObservationRequestError); ok && lockedErr.Code() == observationRequest.FlightPlanIsLocked {
+			errorAbortMessage(c, http.StatusBadRequest, err)
+			return
+		}
 		errorAbortMessage(c, http.StatusInternalServerError, err)
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"flightPlanId": id})
 }
