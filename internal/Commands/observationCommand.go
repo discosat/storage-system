@@ -4,7 +4,7 @@ import (
 	"bytes"
 )
 
-type ObservationCommand struct {
+type CreateObservationCommand struct {
 	File                 *bytes.Reader
 	FileSize             int64
 	FileName             string
@@ -12,4 +12,5 @@ type ObservationCommand struct {
 	FlightPlanName       string
 	ObservationRequestId int
 	UserId               int
+	ObservationType      string
 }

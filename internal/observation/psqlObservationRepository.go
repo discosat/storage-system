@@ -23,7 +23,7 @@ func (p PsqlObservationRepository) GetObservation(id int) (Observation, error) {
 	panic("implement me")
 }
 
-func (p PsqlObservationRepository) CreateObservation(observationCommand Commands.ObservationCommand, metadata *ObservationMetadata) (int, error) {
+func (p PsqlObservationRepository) CreateObservation(observationCommand Commands.CreateObservationCommand, metadata *ObservationMetadata) (int, error) {
 
 	tx, err := p.db.BeginTx(context.Background(), nil)
 	if err != nil {
@@ -40,7 +40,7 @@ func (p PsqlObservationRepository) CreateObservation(observationCommand Commands
 	err = tx.QueryRow("INSERT INTO observation(observation_request_id, object_reference, user_id, bucket_name) VALUES ($1, $2, $3, $4) RETURNING id", observationCommand.ObservationRequestId, objectReference, observationCommand.UserId, observationCommand.Bucket).
 		Scan(&observationId)
 	if err != nil {
-		log.Fatalf("err %v", err)
+		return -1, err
 	}
 
 	var metaId int

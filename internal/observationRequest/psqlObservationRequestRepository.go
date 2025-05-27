@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/discosat/storage-system/internal/Commands"
 	"log/slog"
 )
 
@@ -16,33 +15,17 @@ func NewPsqlObservationRequestRepository(db *sql.DB) ObservationRequestRepositor
 	return &PsqlObservationRequestRepository{db: db}
 }
 
-func (p PsqlObservationRequestRepository) GetObservationRequest(id int) (ObservationRequestAggregate, error) {
+func (p PsqlObservationRequestRepository) GetObservationRequest(id int) (ObservationRequestCommand, error) {
 
-	var observationRequestEntity ObservationRequestAggregate
-	err := p.db.QueryRow("SELECT o_r.id, o_r.type, fp.id, fp.name, fp.user_id, m.id, m.name, m.bucket FROM observation_request o_r INNER JOIN public.flight_plan fp ON o_r.flight_plan_id = fp.id INNER JOIN public.mission m ON m.id = fp.mission_id WHERE o_r.id = $1", id).
-		Scan(&observationRequestEntity.ObservationRequest.Id,
-			//&observationRequestEntity.ObservationRequest.CreatedAt,
-			//&observationRequestEntity.ObservationRequest.UpdatedAt,
-			//&observationRequestEntity.ObservationRequest.FlightPlanId,
-			&observationRequestEntity.ObservationRequest.OType,
-			&observationRequestEntity.FlightPlan.Id,
-			//&observationRequestEntity.FlightPlanEntity.CreatedAt,
-			//&observationRequestEntity.FlightPlanEntity.UpdatedAt,
-			&observationRequestEntity.FlightPlan.Name,
-			&observationRequestEntity.FlightPlan.UserId,
-			//&observationRequestEntity.FlightPlanEntity.MissionId,
-			&observationRequestEntity.Mission.Id,
-			//&observationRequestEntity.Mission.CreatedAt,
-			//&observationRequestEntity.Mission.UpdatedAt,
-			&observationRequestEntity.Mission.Name,
-			&observationRequestEntity.Mission.Bucket)
+	var observationRequest ObservationRequestCommand
+	err := p.db.QueryRow("SELECT o_r.id, o_r.type, fp.name, m.bucket FROM observation_request o_r INNER JOIN public.flight_plan fp ON o_r.flight_plan_id = fp.id INNER JOIN public.mission m ON m.id = fp.mission_id WHERE o_r.id = $1", id).
+		Scan(&observationRequest.ObservationRequest.Id,
+			&observationRequest.ObservationRequest.OType,
+			&observationRequest.FlightPlanName,
+			&observationRequest.Bucket,
+		)
 
-	return observationRequestEntity, err
-}
-
-func (p PsqlObservationRequestRepository) GetMissionById(id int) (Mission, error) {
-	//TODO implement me
-	panic("implement me")
+	return observationRequest, err
 }
 
 func (p PsqlObservationRequestRepository) GetFlightPlanById(id int) (FlightPlanAggregate, error) {
@@ -73,9 +56,9 @@ func (p PsqlObservationRequestRepository) GetFlightPlanById(id int) (FlightPlanA
 	return flightPlan, nil
 }
 
-func (p PsqlObservationRequestRepository) CreateFlightPlan(flightPlan Commands.CreateFlightPlanCommand, requestList []Commands.CreateObservationRequestCommand) (int, error) {
+func (p PsqlObservationRequestRepository) CreateFlightPlan(flightPlan FlightPlanAggregate) (int, error) {
 
-	slog.Info(fmt.Sprintf("Creating a flightplan: %v, for missionId: %v, with observation requests: %v", flightPlan.Name, flightPlan.MissionId, requestList))
+	slog.Info(fmt.Sprintf("Creating a flightplan: %v, for missionId: %v, with observation requests: %v", flightPlan.Name, flightPlan.MissionId, flightPlan.ObservationRequests))
 	tx, err := p.db.BeginTx(context.Background(), &sql.TxOptions{})
 	defer tx.Rollback()
 	if err != nil {
@@ -103,8 +86,8 @@ func (p PsqlObservationRequestRepository) CreateFlightPlan(flightPlan Commands.C
 		return -1, err
 	}
 
-	for _, request := range requestList {
-		_, qErr := tx.Exec("INSERT INTO observation_request (flight_plan_id, type) VALUES ($1, $2)", fpId, request.OType)
+	for _, request := range flightPlan.ObservationRequests {
+		_, qErr := tx.Exec("INSERT INTO observation_request (id, flight_plan_id, type) VALUES ($1, $2, $3)", request.Id, fpId, request.OType)
 		if qErr != nil {
 			slog.Error(fmt.Sprintf("Formatting eror of observation request: %v. \n Error: %v", request, err))
 			return -1, &ObservationRequestError{msg: "Observation request is formatted wrong", code: ObservationRequestParseError}
@@ -199,15 +182,4 @@ func (p PsqlObservationRequestRepository) DeleteFlightPlan(id int) (bool, error)
 		return false, err
 	}
 	return true, nil
-}
-
-func (p PsqlObservationRequestRepository) GetObservationRequestById(id int) (ObservationRequest, error) {
-	var observationRequest ObservationRequest
-	err := p.db.QueryRow("SELECT * FROM observation_request WHERE id = $1", id).Scan(&observationRequest.Id, &observationRequest.FlightPlanId, &observationRequest.OType)
-	return observationRequest, err
-}
-
-func (p PsqlObservationRequestRepository) CreateObservationRequest(flightPLanId int, camera string) {
-	//TODO implement me
-	panic("implement me")
 }

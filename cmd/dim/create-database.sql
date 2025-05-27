@@ -31,7 +31,8 @@ CREATE TABLE flight_plan
     name       VARCHAR(255) UNIQUE,
     user_id    INT                                    NOT NULL,
     mission_id INT                                    NOT NULL,
-    locked     boolean                  DEFAULT FALSE NOT NULL,
+    locked     BOOLEAN                  DEFAULT FALSE NOT NULL,
+--     flight_plan_reference VARCHAR(255) UNIQUE                    NOT NULL, -- Can reference a potentially uploaded flight plan sheet
     CONSTRAINT fk_mission FOREIGN KEY (mission_id) REFERENCES mission (id)
 );
 
@@ -45,7 +46,7 @@ CREATE TYPE observation_type AS ENUM ('image', 'image_series', 'number', 'other'
 
 CREATE TABLE observation_request
 (
-    id             SERIAL PRIMARY KEY,
+    id             INT UNIQUE                             NOT NULL PRIMARY KEY,
     created_at     TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     updated_at     TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
     flight_plan_id INT                                    NOT NULL,
@@ -59,8 +60,7 @@ CREATE TABLE observation_request
 --     created_at             TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
 --     updated_at             TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
 --     observation_request_id INT                                    NOT NULL,
---     metadata               VARCHAR(255),
---     flight_plan_reference
+--     metadata               ???,
 --     CONSTRAINT fk_observation_request FOREIGN KEY (observation_request_id) REFERENCES observation_request (id)
 -- );
 
