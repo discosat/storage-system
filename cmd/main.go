@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/discosat/storage-system/cmd/dam"
 	"github.com/discosat/storage-system/cmd/dim"
 	"github.com/discosat/storage-system/internal/objectStore"
 	"github.com/discosat/storage-system/internal/observation"
@@ -36,7 +37,7 @@ func main() {
 	//dam.InitDB()
 
 	// Initialize DIM and DAM services
-	//go dam.ConfigureRouter()
+	go dam.Start()
 	dimRouter := ConfigDimRouter(db, store)
 	go dimRouter.Run("0.0.0.0:8080") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 

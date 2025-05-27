@@ -12,7 +12,7 @@ type PostgresClient struct {
 }
 
 func NewPostgresClient(connStr string) (*PostgresClient, error) {
-	db, err := sql.Open("postgres", connStr)
+	db, err := sql.Open("pgx", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("Postgres open error: %w", err)
 	}
