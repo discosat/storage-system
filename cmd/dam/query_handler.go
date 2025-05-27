@@ -14,7 +14,7 @@ func newQueryPusher(qom interfaces.QueryOptimizer) *QueryPusher {
 }
 
 func (p *QueryPusher) PushQuery(query interfaces.ImageRequest) (string, []interface{}, error) {
-	sqlQuery, args, err := p.qom.Optimize(query)
+	sqlQuery, args, err := p.qom.Translate(query)
 
 	if err != nil {
 		log.Println("Error passing on query", err)
