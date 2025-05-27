@@ -6,10 +6,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/discosat/storage-system/internal/Commands"
+	"github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgconn"
 	"io"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -23,41 +23,6 @@ type DimController struct {
 func NewDimController(dimService DimServiceInterface) *DimController {
 	return &DimController{dimService: dimService}
 }
-
-func (d DimController) UploadImage(c *gin.Context) {
-	//Binding POST data
-	file, err := c.FormFile("file")
-	if err != nil {
-		errorAbortMessage(c, http.StatusBadRequest, err)
-		return
-	}
-	oFile, err := file.Open()
-	//defer oFile.Close()
-	if err != nil {
-		errorAbortMessage(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	readCloser, ok := oFile.(io.ReadCloser)
-	if !ok {
-		// Handle the error, file does not implement io.ReadCloser
-		return
-	}
-
-	observationId, err := d.dimService.handleUploadImage(&readCloser, file.Filename, file.Size)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			errorAbortMessage(c, http.StatusNotFound, err)
-			return
-		}
-		errorAbortMessage(c, http.StatusInternalServerError, err)
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"observation": observationId})
-	return
-}
-
 func (d DimController) GetFlightPlan(c *gin.Context) {
 	id := c.Query("id")
 	if id == "" {
@@ -71,7 +36,7 @@ func (d DimController) GetFlightPlan(c *gin.Context) {
 		return
 	}
 
-	flightPLan, err := d.dimService.handleGetFlightPlan(fpId)
+	flightPlan, err := d.dimService.handleGetFlightPlan(fpId)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			errorAbortMessage(c, http.StatusNotFound, fmt.Errorf("no flight plan with id: %v", fpId))
@@ -80,55 +45,94 @@ func (d DimController) GetFlightPlan(c *gin.Context) {
 		errorAbortMessage(c, http.StatusBadRequest, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"flightPlan": flightPLan})
-	return
+	c.JSON(http.StatusOK, gin.H{"flightPlan": flightPlan})
 }
 
 func (d DimController) CreateFlightPlan(c *gin.Context) {
 
-	var flightPlan Commands.FlightPlanCommand
+	var flightPlan observationRequest.FlightPlanAggregate
 	err := json.Unmarshal([]byte(c.PostForm("flightPlan")), &flightPlan)
 	if err != nil {
 		errorAbortMessage(c, http.StatusBadRequest, err)
 		return
 	}
 
-	rList := c.PostFormArray("requestList")
-	var orList []Commands.ObservationRequestCommand
-	for _, r := range rList {
-		var or Commands.ObservationRequestCommand
-		err = json.Unmarshal([]byte(r), &or)
-		if err != nil {
-			slog.Warn(fmt.Sprintf("Could not bind request to ObservationRequuest: %v", err))
+	slog.Info("CreateFlightPlan: Request is sucessfully bound, persisting")
+
+	fpId, err := d.dimService.handleCreateFlightPlan(flightPlan)
+	if err != nil {
+		if err.(*observationRequest.ObservationRequestError).Code() == observationRequest.ObservationRequestParseError {
+			slog.Error(fmt.Sprintf("One or more observation requests are formatted wrong: %v", flightPlan.ObservationRequests))
 			errorAbortMessage(c, http.StatusBadRequest, err)
 			return
 		}
-		orList = append(orList, or)
-	}
-
-	slog.Info(fmt.Sprintf("CreateFlightPlan: Request is sucessfully bound, persisting"))
-
-	fpId, err := d.dimService.handleCreateFlightPlan(flightPlan, orList)
-	if err != nil {
-		slog.Error(fmt.Sprintf("Could not create flight plan: %v, wiht observation requests: %v, %v", flightPlan, orList, err))
+		slog.Error(fmt.Sprintf("Could not create flight plan: %v, wiht observation requests: %v, %v", flightPlan, flightPlan.ObservationRequests, err))
 		errorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"flightPlanId": fpId})
 }
 
-func (d DimController) Test(c *gin.Context) {
-	or, err := d.dimService.test(c)
+func (d DimController) UpdateFlightPlan(c *gin.Context) {
+	// TODO Check permissions!!!!!!!!
+	var flightPlan observationRequest.FlightPlanAggregate
+	err := json.Unmarshal([]byte(c.PostForm("flightPlan")), &flightPlan)
 	if err != nil {
-		log.Fatalf("Pis og papir")
+		errorAbortMessage(c, http.StatusBadRequest, err)
+		return
 	}
-	c.JSON(http.StatusCreated, or)
-	return
+	id, err := d.dimService.handleUpdateFlightPlan(flightPlan)
+	if err != nil {
+		if lockedErr, ok := err.(*observationRequest.ObservationRequestError); ok && lockedErr.Code() == observationRequest.FlightPlanIsLocked {
+			errorAbortMessage(c, http.StatusBadRequest, err)
+			return
+		}
+		errorAbortMessage(c, http.StatusInternalServerError, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"flightPlanId": id})
+}
+
+func (d DimController) DeleteFlightPlan(c *gin.Context) {
+	id := c.Query("id")
+	if id == "" {
+		errorAbortMessage(c, http.StatusBadRequest, fmt.Errorf("please enter an id"))
+		return
+	}
+
+	fpId, err := strconv.Atoi(id)
+	if err != nil {
+		errorAbortMessage(c, http.StatusBadRequest, fmt.Errorf("id is not a number: %v", id))
+		return
+	}
+
+	_, err = d.dimService.handleDeleteFlightPlan(fpId)
+	if err != nil {
+		if er, ok := err.(*observationRequest.ObservationRequestError); ok && er.Code() == observationRequest.FlightPlanNotFound {
+			errorAbortMessage(c, http.StatusBadRequest, err)
+			return
+		}
+		if pgEr, ok := err.(*pgconn.PgError); ok && pgEr.Code == "23503" {
+			errorAbortMessage(c, http.StatusBadRequest, pgEr)
+			return
+		}
+		errorAbortMessage(c, http.StatusInternalServerError, fmt.Errorf("error in deleting flight plan wtih id: %v: %v", fpId, err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": fmt.Sprintf("flight plan: %v has been deleted", fpId)})
 }
 
 func (d DimController) UploadBatch(c *gin.Context) {
 	file, err := c.FormFile("batch")
+	if err != nil {
+		errorAbortMessage(c, http.StatusBadRequest, err)
+	}
+
 	oFile, err := file.Open()
+	if err != nil {
+		errorAbortMessage(c, http.StatusBadRequest, err)
+	}
 
 	tmpFile, _ := os.CreateTemp("", "temp*.zip")
 	defer os.Remove(tmpFile.Name())
@@ -144,14 +148,13 @@ func (d DimController) UploadBatch(c *gin.Context) {
 		return
 	}
 
-	err = d.dimService.handleUploadBatch(reader)
+	ids, err := d.dimService.handleUploadBatch(reader)
 	if err != nil {
 		errorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, nil)
-	return
+	c.JSON(http.StatusCreated, gin.H{"ObservationIds": ids})
 }
 
 //func GetMissions(c *gin.Context) {
@@ -185,6 +188,6 @@ func (d DimController) UploadBatch(c *gin.Context) {
 //}
 
 func errorAbortMessage(c *gin.Context, statusCode int, err error) {
-	slog.Error(fmt.Sprint(err))
-	c.JSON(statusCode, gin.H{"error": fmt.Sprint(err)})
+	slog.Error(fmt.Sprint(err.Error()))
+	c.JSON(statusCode, gin.H{"error": fmt.Sprint(err.Error())})
 }

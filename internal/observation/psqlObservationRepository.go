@@ -2,19 +2,19 @@ package observation
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/discosat/storage-system/internal/Commands"
 	"github.com/discosat/storage-system/internal/objectStore"
-	"github.com/jmoiron/sqlx"
 	"log"
 )
 
 type PsqlObservationRepository struct {
-	db          *sqlx.DB
+	db          *sql.DB
 	objectStore objectStore.IDataStore
 }
 
-func NewPsqlObservationRepository(db *sqlx.DB, store objectStore.IDataStore) ObservationRepository {
+func NewPsqlObservationRepository(db *sql.DB, store objectStore.IDataStore) ObservationRepository {
 	return PsqlObservationRepository{db: db, objectStore: store}
 }
 
@@ -23,7 +23,7 @@ func (p PsqlObservationRepository) GetObservation(id int) (Observation, error) {
 	panic("implement me")
 }
 
-func (p PsqlObservationRepository) CreateObservation(observationCommand Commands.ObservationCommand, metadata *ObservationMetadata) (int, error) {
+func (p PsqlObservationRepository) CreateObservation(observationCommand Commands.CreateObservationCommand, metadata *ObservationMetadata) (int, error) {
 
 	tx, err := p.db.BeginTx(context.Background(), nil)
 	if err != nil {
@@ -31,7 +31,7 @@ func (p PsqlObservationRepository) CreateObservation(observationCommand Commands
 	}
 
 	// TODO På et rollback ad SQL tx, skal billedet slettes
-	objectReference, err := p.objectStore.SaveImage(observationCommand)
+	objectReference, err := p.objectStore.SaveObservation(observationCommand)
 	if err != nil {
 		return -1, err
 	}
@@ -40,7 +40,7 @@ func (p PsqlObservationRepository) CreateObservation(observationCommand Commands
 	err = tx.QueryRow("INSERT INTO observation(observation_request_id, object_reference, user_id, bucket_name) VALUES ($1, $2, $3, $4) RETURNING id", observationCommand.ObservationRequestId, objectReference, observationCommand.UserId, observationCommand.Bucket).
 		Scan(&observationId)
 	if err != nil {
-		log.Fatalf("err %v", err)
+		return -1, err
 	}
 
 	var metaId int
@@ -55,7 +55,7 @@ func (p PsqlObservationRepository) CreateObservation(observationCommand Commands
 
 	err = tx.Commit()
 	if err != nil {
-		_, dErr := p.objectStore.DeleteImage(objectReference, observationCommand.Bucket)
+		_, dErr := p.objectStore.DeleteObservation(objectReference, observationCommand.Bucket)
 		if dErr != nil {
 			return -2, fmt.Errorf("could not delete observation: %v from minio after failed transaction. Manual intervention needed: %v", objectReference, err)
 		}

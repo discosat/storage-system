@@ -9,3 +9,9 @@ type Mission struct {
 	Name      string    `json:"name"`
 	Bucket    string    `json:"bucket"`
 }
+
+type MissionDTO struct {
+	Id     int    `json:"id"`
+	Name   string `json:"name"`
+	Bucket string `json:"bucket"`
+}

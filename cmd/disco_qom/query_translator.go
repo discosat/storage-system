@@ -8,7 +8,7 @@ import (
 
 type DiscoQO struct{}
 
-func (q *DiscoQO) Optimize(query interfaces.ImageRequest) (string, []interface{}, error) {
+func (q *DiscoQO) Translate(query interfaces.ImageRequest) (string, []interface{}, error) {
 	sqlQuery, args := StringToSQLTranslator(query)
 
 	return sqlQuery, args, nil

@@ -5,13 +5,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/discosat/storage-system/internal/Commands"
-	"github.com/joho/godotenv"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 type MinioStore struct {
@@ -30,7 +30,7 @@ func (m MinioStore) SaveFile(fileInfo *zip.File, openFile io.ReadCloser, bucketN
 	return status.Key, nil
 }
 
-func (m MinioStore) SaveImage(observationCommand Commands.ObservationCommand) (string, error) {
+func (m MinioStore) SaveObservation(observationCommand Commands.CreateObservationCommand) (string, error) {
 	status, err := m.minioClient.PutObject(context.Background(), observationCommand.Bucket, filepath.ToSlash(observationCommand.FlightPlanName+"/"+observationCommand.FileName), observationCommand.File, observationCommand.FileSize, minio.PutObjectOptions{})
 	if err != nil {
 		return "", fmt.Errorf("error in upload to minio: %v", err)
@@ -46,7 +46,7 @@ func (m MinioStore) BucketExists(bucketName string) (bool, error) {
 	return exists, nil
 }
 
-func (m MinioStore) DeleteImage(imgRef string, bucketName string) (bool, error) {
+func (m MinioStore) DeleteObservation(imgRef string, bucketName string) (bool, error) {
 	err := m.minioClient.RemoveObject(context.Background(), bucketName, imgRef, minio.RemoveObjectOptions{})
 	if err != nil {
 		return false, err
@@ -54,15 +54,19 @@ func (m MinioStore) DeleteImage(imgRef string, bucketName string) (bool, error) 
 	return true, nil
 }
 
-func NewMinioStore() MinioStore {
-	err := godotenv.Load("cmd/dim/.env")
-	if err != nil {
-		log.Fatalf("NewMinioStore: Cant find env - %v", err)
-	}
+func (m MinioStore) CreateBucket(bucketName string) error {
+	err := m.minioClient.MakeBucket(context.Background(), bucketName, minio.MakeBucketOptions{Region: "eu-north-0", ObjectLocking: false})
+	return err
+}
+
+func NewMinioStore() *MinioStore {
 	endpoint := os.Getenv("MINIO_ENDPOINT")
 	accessKeyID := os.Getenv("MINIO_ACCESS_KEY_ID")
 	secretAccessKey := os.Getenv("MINIO_SECRET_ACCESS_KEY")
-	useSSL := true
+	useSSL, err := strconv.ParseBool(os.Getenv("MINIO_USE_SSL"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	minioC, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
@@ -76,8 +80,8 @@ func NewMinioStore() MinioStore {
 	// Check if minio is up and running
 	_, err = minioC.ListBuckets(context.Background())
 	if err != nil {
-		log.Fatalf("Could not connect to Minio instance. Double check that it is up and running, and that you have provided correct credentials")
+		log.Fatalf("Could not connect to Minio instance. Double check that it is up and running, and that you have provided correct credentials: %v", err)
 	}
 
-	return MinioStore{minioClient: minioC}
+	return &MinioStore{minioClient: minioC}
 }
