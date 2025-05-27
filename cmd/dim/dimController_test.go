@@ -10,7 +10,6 @@ import (
 	"github.com/discosat/storage-system/internal/observation"
 	"github.com/discosat/storage-system/internal/observationRequest"
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go/modules/minio"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
@@ -78,7 +77,6 @@ func TestDimControllerIntegrationTestSuite(t *testing.T) {
 }
 
 func (s *DimControllerIntegrationTestSuite) TestGetFlightPlanIntegration() {
-	t := s.T()
 	request, _ := http.NewRequest("GET", "/flightPlan?id=1", nil)
 	w := httptest.NewRecorder()
 	s.dimRouter.ServeHTTP(w, request)
@@ -92,15 +90,14 @@ func (s *DimControllerIntegrationTestSuite) TestGetFlightPlanIntegration() {
 	flightPlan := jsonMap["flightPlan"]
 
 	// ----- THEN -----
-	assert.Equal(t, 200, w.Code)
-	assert.NotNil(t, flightPlan)
-	assert.Equal(t, flightPlan.Name, "flight plan 1")
-	assert.NotNil(t, flightPlan.ObservationRequests)
-	assert.Equal(t, flightPlan.ObservationRequests[0].OType, "image")
+	s.Equal(200, w.Code)
+	s.NotNil(flightPlan)
+	s.Equal(flightPlan.Name, "flight plan 1")
+	s.NotNil(flightPlan.ObservationRequests)
+	s.Equal(flightPlan.ObservationRequests[0].OType, "image")
 }
 
 func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanIntegration() {
-	t := s.T()
 
 	// ----- GIVEN -----
 	body := &bytes.Buffer{}
@@ -132,13 +129,12 @@ func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanIntegration() {
 	response, _ := io.ReadAll(w.Body)
 
 	// ----- THEN -----
-	assert.Equal(t, 201, w.Code)
-	assert.Regexp(t, regexp.MustCompile(`{"flightPlanId":[0-9]+}`), string(response))
+	s.Equal(201, w.Code)
+	s.Regexp(regexp.MustCompile(`{"flightPlanId":[0-9]+}`), string(response))
 	//c.JSON(http.StatusCreated, gin.H)
 }
 
 func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanNoObservationRequestsIntegration() {
-	t := s.T()
 
 	// ----- GIVEN -----
 	body := &bytes.Buffer{}
@@ -164,13 +160,12 @@ func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanNoObservationReq
 	response, _ := io.ReadAll(w.Body)
 
 	// ----- THEN -----
-	assert.Equal(t, 201, w.Code)
-	assert.Regexp(t, regexp.MustCompile(`{"flightPlanId":[0-9]+}`), string(response))
+	s.Equal(201, w.Code)
+	s.Regexp(regexp.MustCompile(`{"flightPlanId":[0-9]+}`), string(response))
 	//c.JSON(http.StatusCreated, gin.H)
 }
 
 func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanIntegrationErrorObservationRequest() {
-	t := s.T()
 
 	// ----- GIVEN -----
 	body := &bytes.Buffer{}
@@ -199,8 +194,8 @@ func (s *DimControllerIntegrationTestSuite) TestCreateFlightPlanIntegrationError
 	response, _ := io.ReadAll(w.Body)
 
 	// ----- THEN -----
-	assert.Equal(t, 400, w.Code)
-	assert.Regexp(t, regexp.MustCompile(`{"error":"Observation request is formatted wrong"}`), string(response))
+	s.Equal(400, w.Code)
+	s.Regexp(regexp.MustCompile(`{"error":"Observation request is formatted wrong"}`), string(response))
 	//c.JSON(http.StatusCreated, gin.H)
 }
 
@@ -222,8 +217,8 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanIntegration() {
 	}
 
 	// ----- EXPECT -----
-	assert.Equal(t, flightPlan.Name, "flight plan update test")
-	assert.Equal(t, flightPlan.ObservationRequests[0].OType, "image")
+	s.Equal(flightPlan.Name, "flight plan update test")
+	s.Equal(flightPlan.ObservationRequests[0].OType, "image")
 
 	//----- WHEN -----
 	//altered
@@ -275,9 +270,9 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanIntegration() {
 		t.Fatal(err)
 	}
 
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, updatedFlightPlan.Name, newFpName)
-	assert.Equal(t, updatedFlightPlan.ObservationRequests[0].OType, newOrType)
+	s.Equal(http.StatusOK, w.Code)
+	s.Equal(updatedFlightPlan.Name, newFpName)
+	s.Equal(updatedFlightPlan.ObservationRequests[0].OType, newOrType)
 
 }
 
@@ -300,8 +295,7 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanAddObservationRe
 	numOriginalObservationRequests := len(flightPlan.ObservationRequests)
 
 	// ----- EXPECT -----
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, flightPlan.Name, "flight plan update test")
+	s.Equal(http.StatusOK, w.Code)
 
 	//----- WHEN -----
 	//Observation request is added
@@ -340,7 +334,7 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanAddObservationRe
 
 	// EXPECT
 	// Success
-	assert.Equal(t, http.StatusOK, w.Code)
+	s.Equal(http.StatusOK, w.Code)
 
 	// ----- THEN -----
 	//when Retrieved again
@@ -357,8 +351,8 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanAddObservationRe
 
 	// EXPECT
 	// number of observation requests is one larger
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, numOriginalObservationRequests+1, len(updatedFlightPlan.ObservationRequests))
+	s.Equal(http.StatusOK, w.Code)
+	s.Equal(numOriginalObservationRequests+1, len(updatedFlightPlan.ObservationRequests))
 }
 
 func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanRemoveObservationRequestIntegration() {
@@ -380,8 +374,8 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanRemoveObservatio
 	numOriginalObservationRequests := len(flightPlan.ObservationRequests)
 
 	// ----- EXPECT -----
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, flightPlan.Name, "flight plan update delete test")
+	s.Equal(http.StatusOK, w.Code)
+	s.Equal(flightPlan.Name, "flight plan update delete test")
 
 	//----- WHEN -----
 	//Observation request is deleted
@@ -419,7 +413,7 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanRemoveObservatio
 
 	// EXPECT
 	// Success
-	assert.Equal(t, http.StatusOK, w.Code)
+	s.Equal(http.StatusOK, w.Code)
 
 	// ----- THEN -----
 	//when Retrieved again
@@ -436,8 +430,8 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanRemoveObservatio
 
 	// EXPECT
 	// number of observation requests is one larger
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, numOriginalObservationRequests-1, len(updatedFlightPlan.ObservationRequests))
+	s.Equal(http.StatusOK, w.Code)
+	s.Equal(numOriginalObservationRequests-1, len(updatedFlightPlan.ObservationRequests))
 }
 
 func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanLockedErrorIntegration() {
@@ -451,20 +445,21 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanLockedErrorInteg
 
 	//var jsonMap map[string]observationRequest.FlightPlanAggregate
 	//err := json.Unmarshal(response, &jsonMap)
-	var flightPlan observationRequest.FlightPlanAggregate
-	err := test.BindFlightPlanJson(response, &flightPlan)
+	var preUpdateFlightPlan observationRequest.FlightPlanAggregate
+	err := test.BindFlightPlanJson(response, &preUpdateFlightPlan)
 	if err != nil {
 		log.Fatalf("Could not bind flightPlan: %v", err)
 	}
 
 	// ----- EXPECT -----
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, flightPlan.Id, 2)
-	assert.Equal(t, flightPlan.Locked, true)
+	s.Equal(http.StatusOK, w.Code)
+	s.Equal(preUpdateFlightPlan.Id, 2)
+	s.Equal(preUpdateFlightPlan.Locked, true)
 
 	//----- WHEN -----
 	//Flight plan is changed
-	flightPlan.Name = "This should give an error because it is locked"
+	updatingFlightPlan := preUpdateFlightPlan
+	updatingFlightPlan.Name = "This should give an error, as flight plan is locked"
 
 	//----- AND -----
 	// Updated
@@ -475,7 +470,7 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanLockedErrorInteg
 		t.Fatal(err)
 	}
 	// New flight Plan
-	FpJson, err := json.Marshal(flightPlan)
+	FpJson, err := json.Marshal(updatingFlightPlan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -488,17 +483,35 @@ func (s *DimControllerIntegrationTestSuite) TestUpdateFlightPlanLockedErrorInteg
 		t.Fatal(err)
 	}
 
-	request, err = http.NewRequest("PUT", "/flightPlan", body)
+	updateRequest, err := http.NewRequest("PUT", "/flightPlan", body)
 	if err != nil {
 		t.Fatal(err)
 	}
-	request.Header.Set("Content-Type", "multipart/form-data; boundary="+writer.Boundary())
-	w = httptest.NewRecorder()
-	s.dimRouter.ServeHTTP(w, request)
+	updateRequest.Header.Set("Content-Type", "multipart/form-data; boundary="+writer.Boundary())
+	updateWriter := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(updateWriter, updateRequest)
+	updateResponse, _ := io.ReadAll(updateWriter.Body)
 
-	// Then
+	// THEN
 	// Error
-	assert.Equal(t, http.StatusBadRequest, w.Code)
+	s.Equal(http.StatusBadRequest, updateWriter.Code)
+	s.Equal(string(updateResponse), `{"error":"Flight plan with id: 2 is locked"}`)
+
+	// AND
+	// The id fetched again brings the same object
+
+	newFetchRequest, _ := http.NewRequest("GET", "/flightPlan?id=2", nil)
+	newFetchW := httptest.NewRecorder()
+	s.dimRouter.ServeHTTP(newFetchW, newFetchRequest)
+	response, _ = io.ReadAll(newFetchW.Body)
+
+	var postUpdateFlightPlan observationRequest.FlightPlanAggregate
+	err = test.BindFlightPlanJson(response, &postUpdateFlightPlan)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s.Equal(preUpdateFlightPlan, postUpdateFlightPlan)
 
 }
 
@@ -518,8 +531,8 @@ func (s *DimControllerIntegrationTestSuite) TestDeleteFlightPlan() {
 
 	// EXPECT
 	// Looks as expected
-	assert.Equal(t, flightPlan.Id, 3)
-	assert.Equal(t, len(flightPlan.ObservationRequests), 2)
+	s.Equal(flightPlan.Id, 3)
+	s.Equal(len(flightPlan.ObservationRequests), 2)
 
 	// WHEN
 	// Flight plan with id 2 is deleted
@@ -529,8 +542,8 @@ func (s *DimControllerIntegrationTestSuite) TestDeleteFlightPlan() {
 	response, _ = io.ReadAll(responseWriter.Body)
 	//EXPECT
 	// success
-	assert.Equal(t, responseWriter.Code, 200)
-	assert.Equal(t, string(response), `{"message":"flight plan: 3 has been deleted"}`)
+	s.Equal(responseWriter.Code, 200)
+	s.Equal(string(response), `{"message":"flight plan: 3 has been deleted"}`)
 
 	// THEN
 	// No flight plan with id 2 exists
@@ -543,9 +556,9 @@ func (s *DimControllerIntegrationTestSuite) TestDeleteFlightPlan() {
 
 	// EXPECT
 	// Looks as expected
-	//assert.NotNil(t, expectedError)
-	assert.Equal(t, responseWriter.Code, 404)
-	assert.Equal(t, string(response), `{"error":"no flight plan with id: 3"}`)
+	//s.NotNil(expectedError)
+	s.Equal(responseWriter.Code, 404)
+	s.Equal(string(response), `{"error":"no flight plan with id: 3"}`)
 }
 
 func (s *DimControllerIntegrationTestSuite) TestDeleteFlightPlanWithObservationsError() {
@@ -564,8 +577,8 @@ func (s *DimControllerIntegrationTestSuite) TestDeleteFlightPlanWithObservations
 
 	// EXPECT
 	// Looks as expected
-	assert.Equal(t, flightPlan.Id, 2)
-	assert.Equal(t, len(flightPlan.ObservationRequests), 2)
+	s.Equal(flightPlan.Id, 2)
+	s.Equal(len(flightPlan.ObservationRequests), 2)
 
 	// WHEN
 	// Flight plan with id 2 is attempted deleted
@@ -575,7 +588,7 @@ func (s *DimControllerIntegrationTestSuite) TestDeleteFlightPlanWithObservations
 	_, _ = io.ReadAll(responseWriter.Body)
 	//EXPECT
 	// BadRequest
-	assert.Equal(t, responseWriter.Code, 400)
+	s.Equal(responseWriter.Code, 400)
 }
 
 // TODO husk også hentning af image_series
@@ -609,7 +622,7 @@ func (s *DimControllerIntegrationTestSuite) TestUploadBatch() {
 	response, _ := io.ReadAll(w.Body)
 
 	// THEN
-	assert.Equal(t, http.StatusCreated, w.Code)
-	assert.Equal(t, `{"ObservationIds":[2,3,4,5,6,7,8]}`, string(response))
+	s.Equal(http.StatusCreated, w.Code)
+	s.Equal(`{"ObservationIds":[2,3,4,5,6,7,8]}`, string(response))
 
 }
