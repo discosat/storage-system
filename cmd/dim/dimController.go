@@ -189,5 +189,6 @@ func (d DimController) UploadBatch(c *gin.Context) {
 
 func errorAbortMessage(c *gin.Context, statusCode int, err error) {
 	slog.Error(fmt.Sprint(err.Error()))
+	c.Header("Access-Control-Allow-Origin", "*")
 	c.JSON(statusCode, gin.H{"error": fmt.Sprint(err.Error())})
 }
