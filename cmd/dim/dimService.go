@@ -91,7 +91,7 @@ func (d DimService) handleUploadBatch(archive *zip.ReadCloser) ([]int, error) {
 		uploadedIds = append(uploadedIds, id)
 		if err != nil {
 			log.Printf("UploadBatch: Cannot upload thie file %v, error is %v", iFile.Name, err)
-			break
+			return nil, err
 		}
 		err = oFile.Close()
 		if err != nil {
@@ -141,9 +141,9 @@ func extractMetadata(raw []byte) (int, observation.ObservationMetadata, error) {
 		Timestamp:     123456789,
 		BitsPixels:    6,
 		ImageOffset:   24,
-		Camera:        "I",
-		GnssLongitude: 10.4058633,
-		GnssLatitude:  553821913,
+		Camera:        "",
+		GnssLongitude: 0,
+		GnssLatitude:  0,
 		GnssDate:      123456789,
 		GnssTime:      123456789,
 		GnssSpeed:     420,
@@ -155,15 +155,33 @@ func extractMetadata(raw []byte) (int, observation.ObservationMetadata, error) {
 	var t []map[string]string
 	json.Unmarshal(result, &t)
 	s := t[0]["Comment"]
-	var l map[string]int
+	var l map[string]any
 	err = json.Unmarshal([]byte(s), &l)
 	if err != nil {
 		return -1, observation.ObservationMetadata{}, fmt.Errorf("extractMetadata: %v", err)
 	}
 
-	relatedObservationRequest := l["measurementRequest"]
+	relatedObservationRequest := int(l["measurementRequest"].(float64))
 	if relatedObservationRequest == 0 {
 		return -1, observation.ObservationMetadata{}, fmt.Errorf("extractMetadata: %v", err)
+	}
+	lon := l["lon"]
+	if lon == 0 {
+		return -1, observation.ObservationMetadata{}, fmt.Errorf("extractMetadata: %v", err)
+	} else {
+		metadata.GnssLongitude = lon.(float64)
+	}
+	lat := l["lat"]
+	if lat == 0 {
+		return -1, observation.ObservationMetadata{}, fmt.Errorf("extractMetadata: %v", err)
+	} else {
+		metadata.GnssLatitude = int(lat.(float64))
+	}
+	cam := l["cam"]
+	if cam == "" {
+		return -1, observation.ObservationMetadata{}, fmt.Errorf("extractMetadata: %v", err)
+	} else {
+		metadata.Camera = cam.(string)
 	}
 	return relatedObservationRequest, metadata, nil
 }
