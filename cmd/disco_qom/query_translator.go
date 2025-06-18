@@ -98,5 +98,7 @@ func StringToSQLTranslator(query interfaces.ImageRequest) (string, []interface{}
 		sqlQuery += " WHERE " + strings.Join(conditions, " AND ")
 	}
 
+	sqlQuery += " AND observation.bucket_name = 'demodata'"
+
 	return sqlQuery, args
 }
