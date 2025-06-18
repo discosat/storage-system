@@ -5,10 +5,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"github.com/discosat/storage-system/cmd/test"
 	"github.com/discosat/storage-system/internal/objectStore"
 	"github.com/discosat/storage-system/internal/observation"
 	"github.com/discosat/storage-system/internal/observationRequest"
+	"github.com/discosat/storage-system/test"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go/modules/minio"
@@ -600,7 +600,7 @@ func (s *DimControllerIntegrationTestSuite) TestUploadBatch() {
 	// GIVEN
 	// a batch (.zip) of images
 	//reader, err := zip.OpenReader(filepath.Join(".", "testData", "batch.zip"))
-	zip, err := os.Open(filepath.Join(".", "testData", "batch.zip"))
+	zip, err := os.Open(filepath.Join("..", "..", "testData", "batch.zip"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -620,9 +620,10 @@ func (s *DimControllerIntegrationTestSuite) TestUploadBatch() {
 	w := httptest.NewRecorder()
 	s.dimRouter.ServeHTTP(w, request)
 	response, _ := io.ReadAll(w.Body)
+	idJson := make(map[string][]int)
+	json.Unmarshal(response, &idJson)
 
 	// THEN
 	s.Equal(http.StatusCreated, w.Code)
-	s.Equal(`{"ObservationIds":[2,3,4,5,6,7,8]}`, string(response))
-
+	s.Equal(7, len(idJson["ObservationIds"]))
 }

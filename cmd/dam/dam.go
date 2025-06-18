@@ -5,15 +5,26 @@ import (
 	"github.com/discosat/storage-system/cmd/db"
 	"github.com/discosat/storage-system/cmd/disco_qom"
 	"github.com/discosat/storage-system/cmd/interfaces"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"log"
 	"net/http"
 	"os"
 	"time"
 )
 
-func Start() {
+func ConfigureRouter() (*gin.Engine, error) {
 	g := gin.Default()
+
+	g.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"}, // Frontend origin
+		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		ExposeHeaders:    []string{"Content-Disposition"}, // So frontend can access download filename
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	pgClient, err := db.NewPostgresClient(os.Getenv("POSTGRES_CONN"))
 	if err != nil {
@@ -37,10 +48,7 @@ func Start() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	err = g.Run(":8081")
-	if err != nil {
-		log.Fatal("Failed to start server")
-	}
+	return g, nil
 }
 
 type DataAccessHandler struct {
