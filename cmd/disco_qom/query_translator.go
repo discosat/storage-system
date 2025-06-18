@@ -29,7 +29,7 @@ func StringToSQLTranslator(query interfaces.ImageRequest) (string, []interface{}
 
 	if query.ObsID != nil {
 		fmt.Println("Logging observation ID after stripping it from image request", *query.ObsID)
-		conditions = append(conditions, fmt.Sprintf("obs_id = $%d", argIndex))
+		conditions = append(conditions, fmt.Sprintf("observation_id = $%d", argIndex))
 		args = append(args, *query.ObsID)
 		argIndex++
 	}

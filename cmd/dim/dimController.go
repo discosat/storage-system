@@ -70,6 +70,7 @@ func (d DimController) CreateFlightPlan(c *gin.Context) {
 		errorAbortMessage(c, http.StatusInternalServerError, err)
 		return
 	}
+	c.Header("Access-Control-Allow-Origin", "*")
 	c.JSON(http.StatusCreated, gin.H{"flightPlanId": fpId})
 }
 
@@ -154,6 +155,7 @@ func (d DimController) UploadBatch(c *gin.Context) {
 		return
 	}
 
+	c.Header("Access-Control-Allow-Origin", "*")
 	c.JSON(http.StatusCreated, gin.H{"ObservationIds": ids})
 }
 

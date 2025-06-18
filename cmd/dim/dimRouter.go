@@ -20,23 +20,6 @@ func ConfigureRouter(dimController *DimController) *gin.Engine {
 	//router.GET("/missions", GetMissions)
 	//router.GET("/requests", GetRequests)
 	//router.GET("/requestsNoObservation", GetRequestsNoObservation)
-	router.Use(CORSMiddleware())
 
 	return router
-}
-
-func CORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	}
 }
