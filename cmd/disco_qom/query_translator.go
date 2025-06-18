@@ -48,31 +48,40 @@ func StringToSQLTranslator(query interfaces.ImageRequest) (string, []interface{}
 		argIndex++
 	}
 
-	if query.LatFrom != nil {
-		fmt.Println("Logging latitude from after stripping it from image request", *query.LatFrom)
-		conditions = append(conditions, fmt.Sprintf("latitude >= $%d", argIndex))
-		args = append(args, *query.LatFrom)
-		argIndex++
-	}
+	//if query.LatFrom != nil {
+	//	fmt.Println("Logging latitude from after stripping it from image request", *query.LatFrom)
+	//	conditions = append(conditions, fmt.Sprintf("latitude >= $%d", argIndex))
+	//	args = append(args, *query.LatFrom)
+	//	argIndex++
+	//}
+	//
+	//if query.LatTo != nil {
+	//	fmt.Println("Logging latitude to after stripping it from image request", *query.LatTo)
+	//	conditions = append(conditions, fmt.Sprintf("latitude <= $%d", argIndex))
+	//	args = append(args, *query.LatTo)
+	//	argIndex++
+	//}
+	//
+	//if query.LonFrom != nil {
+	//	fmt.Println("Logging longitude from after stripping it from image request", *query.LonFrom)
+	//	conditions = append(conditions, fmt.Sprintf("longitude >= $%d", argIndex))
+	//	args = append(args, *query.LonFrom)
+	//	argIndex++
+	//}
+	//
+	//if query.LonTo != nil {
+	//	fmt.Println("Logging longitude to after stripping it from image request", *query.LonTo)
+	//	conditions = append(conditions, fmt.Sprintf("longitude <= $%d", argIndex))
+	//	args = append(args, *query.LonTo)
+	//	argIndex++
+	//}
 
-	if query.LatTo != nil {
-		fmt.Println("Logging latitude to after stripping it from image request", *query.LatTo)
-		conditions = append(conditions, fmt.Sprintf("latitude <= $%d", argIndex))
-		args = append(args, *query.LatTo)
+	if query.LonFrom != nil && query.LatFrom != nil && query.DistanceFrom != nil {
+		fmt.Printf("Observations within %d meters of lat: %f, long %f ", *query.DistanceFrom, *query.LatFrom, *query.LonFrom)
+		conditions = append(conditions, fmt.Sprintf("ST_DWithin(observation_metadata.location, ST_SetSRID(ST_MakePoint($%d,$%d), 4326), $%d)", argIndex, argIndex+1, argIndex+2))
+		args = append(args, *query.LonFrom, *query.LatFrom, *query.DistanceFrom)
 		argIndex++
-	}
-
-	if query.LonFrom != nil {
-		fmt.Println("Logging longitude from after stripping it from image request", *query.LonFrom)
-		conditions = append(conditions, fmt.Sprintf("longitude >= $%d", argIndex))
-		args = append(args, *query.LonFrom)
 		argIndex++
-	}
-
-	if query.LonTo != nil {
-		fmt.Println("Logging longitude to after stripping it from image request", *query.LonTo)
-		conditions = append(conditions, fmt.Sprintf("longitude <= $%d", argIndex))
-		args = append(args, *query.LonTo)
 		argIndex++
 	}
 
